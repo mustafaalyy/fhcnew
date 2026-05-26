@@ -1,5 +1,20 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Search, Calendar, Star, CheckCircle, Award } from "lucide-react";
+
+// Hook for scroll-triggered fade-in
+function useFadeIn(threshold = 0.15) {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } },
+      { threshold }
+    );
+    if (ref.current) obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, []);
+  return [ref, visible];
+}
 import { useHospital } from "../context/HospitalContext";
 import Slideshow from "../components/Slideshow";
 import StatsBar from "../components/StatsBar";
@@ -11,6 +26,11 @@ export default function Home({ setCurrentTab, setSelectedSpecialtyId, setSelecte
   // Search state
   const [searchSpecialty, setSearchSpecialty] = useState("");
   const [searchName, setSearchName] = useState("");
+
+  // Scroll animation refs
+  const [specRef, specVisible] = useFadeIn();
+  const [testRef, testVisible] = useFadeIn();
+  const [drRef, drVisible] = useFadeIn();
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -33,8 +53,8 @@ export default function Home({ setCurrentTab, setSelectedSpecialtyId, setSelecte
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Select 8 specialties for homepage
-  const homeSpecialties = specialties.slice(0, 8);
+  // Select 4 specialties for homepage
+  const homeSpecialties = specialties.slice(0, 4);
 
   // Find Dr. Mohamed Sedky
   const drSedky = doctors.find((d) => d.id === "dr-mohamed-sedky");
@@ -133,30 +153,35 @@ export default function Home({ setCurrentTab, setSelectedSpecialtyId, setSelecte
         </div>
       </section>
 
-      {/* Services Block (8 Specialties) */}
-      <section className="section-padding" style={{ backgroundColor: "var(--color-light)" }}>
+      {/* Services Block (4 Specialties) */}
+      <section className="section-padding" style={{ backgroundColor: "var(--color-light)" }} ref={specRef}>
         <div className="container">
-          <div className="section-title">
+          <div
+            className="section-title"
+            style={{ opacity: specVisible ? 1 : 0, transform: specVisible ? "translateY(0)" : "translateY(20px)", transition: "opacity 0.5s ease, transform 0.5s ease" }}
+          >
             <h2>تخصصاتنا الطبية المتميزة</h2>
             <p>نقدم رعاية صحية شاملة ومتكاملة لعائلتك تحت إشراف نخبة من كبار الأطباء والاستشاريين</p>
           </div>
 
           <div className="grid-4">
-            {homeSpecialties.map((spec) => (
-              <ServiceCard 
+            {homeSpecialties.map((spec, idx) => (
+              <div
                 key={spec.id}
-                specialty={spec}
-                onBookClick={handleSpecialtyBook}
-              />
+                style={{
+                  opacity: specVisible ? 1 : 0,
+                  transform: specVisible ? "translateY(0)" : "translateY(30px)",
+                  transition: `opacity 0.5s ease ${0.1 + idx * 0.1}s, transform 0.5s ease ${0.1 + idx * 0.1}s`
+                }}
+              >
+                <ServiceCard specialty={spec} onBookClick={handleSpecialtyBook} />
+              </div>
             ))}
           </div>
 
           <div style={{ textAlign: "center", marginTop: "3rem" }}>
-            <button 
-              onClick={() => setCurrentTab("services")}
-              className="btn btn-outline"
-            >
-              عرض كافة الخدمات (12 تخصص طبي)
+            <button onClick={() => setCurrentTab("services")} className="btn btn-outline">
+              عرض كافة الخدمات ({specialties.length} تخصص طبي)
             </button>
           </div>
         </div>
@@ -164,7 +189,7 @@ export default function Home({ setCurrentTab, setSelectedSpecialtyId, setSelecte
 
       {/* Dr. Mohamed Sedky Profile Section */}
       {drSedky && (
-        <section className="section-padding" style={{ backgroundColor: "var(--color-white)", borderTop: "1px solid var(--color-border)", borderBottom: "1px solid var(--color-border)" }}>
+        <section className="section-padding" ref={drRef} style={{ backgroundColor: "var(--color-white)", borderTop: "1px solid var(--color-border)", borderBottom: "1px solid var(--color-border)", opacity: drVisible ? 1 : 0, transform: drVisible ? "translateY(0)" : "translateY(30px)", transition: "opacity 0.6s ease, transform 0.6s ease" }}>
           <div className="container">
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: "3.5rem", alignItems: "center" }} className="doctor-sedky-grid">
               
@@ -257,23 +282,26 @@ export default function Home({ setCurrentTab, setSelectedSpecialtyId, setSelecte
       )}
 
       {/* Testimonials section */}
-      <section className="section-padding" style={{ backgroundColor: "var(--color-light)" }}>
+      <section className="section-padding" style={{ backgroundColor: "var(--color-light)" }} ref={testRef}>
         <div className="container">
-          <div className="section-title">
+          <div className="section-title" style={{ opacity: testVisible ? 1 : 0, transform: testVisible ? "translateY(0)" : "translateY(20px)", transition: "opacity 0.5s ease, transform 0.5s ease" }}>
             <h2>ماذا يقول مرضانا عنا؟</h2>
             <p>قصص نجاح ورسائل شكر من مرضى وثقوا برعاية مستشفى Family Health</p>
           </div>
 
           <div className="grid-3">
             {testimonials.map((test, idx) => (
-              <div 
-                key={idx} 
+              <div
+                key={idx}
                 className="luxury-card"
                 style={{
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "space-between",
-                  position: "relative"
+                  position: "relative",
+                  opacity: testVisible ? 1 : 0,
+                  transform: testVisible ? "translateY(0)" : "translateY(30px)",
+                  transition: `opacity 0.5s ease ${idx * 0.15}s, transform 0.5s ease ${idx * 0.15}s`
                 }}
               >
                 <div style={{ display: "flex", gap: "0.2rem", marginBottom: "1rem" }}>

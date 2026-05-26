@@ -1,10 +1,27 @@
-import React, { useState } from "react";
-import { Phone, MapPin, Menu, X, LogOut, User, Shield, Calendar } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Phone, MapPin, Menu, X, LogOut, Shield, Calendar } from "lucide-react";
 import { useHospital } from "../context/HospitalContext";
 
 export default function Header({ currentTab, setCurrentTab }) {
   const { settings, currentUser, logout } = useHospital();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // Secret access: click logo 5 times quickly to open admin
+  const [logoClicks, setLogoClicks] = useState(0);
+  const logoClickTimer = React.useRef(null);
+
+  const handleLogoSecretClick = () => {
+    setLogoClicks(prev => {
+      const next = prev + 1;
+      if (next >= 5) {
+        handleNavClick("admin");
+        clearTimeout(logoClickTimer.current);
+        return 0;
+      }
+      clearTimeout(logoClickTimer.current);
+      logoClickTimer.current = setTimeout(() => setLogoClicks(0), 2000);
+      return next;
+    });
+  };
 
   const navigation = [
     { id: "home", name: "الرئيسية" },
@@ -75,12 +92,9 @@ export default function Header({ currentTab, setCurrentTab }) {
                 </button>
               </div>
             ) : (
-              <span 
-                onClick={() => handleNavClick("admin")} 
-                style={{ display: "flex", alignItems: "center", gap: "0.3rem", cursor: "pointer", hover: { color: "#fff" } }}
-              >
-                <User size={14} style={{ color: "var(--color-primary)" }} />
-                <span>دخول الإدارة</span>
+              /* Secret: no visible admin link. Logo click x5 to open */
+              <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.3)" }}>
+                {logoClicks > 0 && logoClicks < 5 ? `${5 - logoClicks}...` : ""}
               </span>
             )}
           </div>
@@ -93,7 +107,7 @@ export default function Header({ currentTab, setCurrentTab }) {
           
           {/* Logo */}
           <div 
-            onClick={() => handleNavClick("home")} 
+            onClick={handleLogoSecretClick}
             style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}
           >
             <div 
@@ -213,16 +227,7 @@ export default function Header({ currentTab, setCurrentTab }) {
               <LogOut size={16} />
               تسجيل الخروج
             </button>
-          ) : (
-            <button 
-              onClick={() => handleNavClick("admin")}
-              className="btn btn-outline"
-              style={{ width: "100%", color: "var(--color-white)", borderColor: "var(--color-primary)" }}
-            >
-              <User size={16} />
-              دخول الإدارة
-            </button>
-          )}
+          ) : null}
         </div>
       )}
 

@@ -100,6 +100,16 @@ export default function Admin({ setCurrentTab }) {
   const [usrRole, setUsrRole] = useState("receptionist");
   const [usrPassword, setUsrPassword] = useState("");
   const [usrDoctorId, setUsrDoctorId] = useState("");
+  const [usrAllowedTabs, setUsrAllowedTabs] = useState(["bookings"]);
+
+  // Specialties management state
+  const [showSpecModal, setShowSpecModal] = useState(false);
+  const [editingSpec, setEditingSpec] = useState(null);
+  const [specName, setSpecName] = useState("");
+  const [specDesc, setSpecDesc] = useState("");
+  const [specIcon, setSpecIcon] = useState("Stethoscope");
+  const [specFeatures, setSpecFeatures] = useState("");
+  const [localSpecialties, setLocalSpecialties] = useState(null);
 
   // Medical Records tab state
   const [selectedPatientBooking, setSelectedPatientBooking] = useState(null);
@@ -429,6 +439,7 @@ export default function Admin({ setCurrentTab }) {
     setUsrRole("receptionist");
     setUsrPassword("");
     setUsrDoctorId("");
+    setUsrAllowedTabs(["bookings"]);
     setShowUserModal(true);
   };
 
@@ -439,6 +450,7 @@ export default function Admin({ setCurrentTab }) {
     setUsrRole(usr.role);
     setUsrPassword(usr.password);
     setUsrDoctorId(usr.doctorId || "");
+    setUsrAllowedTabs(usr.allowedTabs || ["bookings", "records"]);
     setShowUserModal(true);
   };
 
@@ -446,12 +458,17 @@ export default function Admin({ setCurrentTab }) {
     e.preventDefault();
     if (!usrUsername || !usrPassword || !usrName) return;
 
+    const finalTabs = usrRole === "superadmin"
+      ? ["bookings", "records", "doctors", "content", "settings", "users", "specialties"]
+      : usrAllowedTabs;
+
     const usrPayload = {
       username: usrUsername,
       name: usrName,
       role: usrRole,
       password: usrPassword,
-      doctorId: usrRole === "doctor" ? usrDoctorId : undefined
+      doctorId: usrRole === "doctor" ? usrDoctorId : undefined,
+      allowedTabs: finalTabs
     };
 
     if (editingUser) {
@@ -462,6 +479,64 @@ export default function Admin({ setCurrentTab }) {
       alert("تم إضافة المستخدم الجديد بنجاح!");
     }
     setShowUserModal(false);
+  };
+
+  // Specialties management - uses localStorage directly since context has readonly specialties
+  const getLocalSpecialties = () => {
+    if (localSpecialties) return localSpecialties;
+    const stored = localStorage.getItem("fhh_specialties_custom");
+    if (stored) return JSON.parse(stored);
+    return specialties; // fallback to context
+  };
+
+  const saveLocalSpecialties = (list) => {
+    setLocalSpecialties(list);
+    localStorage.setItem("fhh_specialties_custom", JSON.stringify(list));
+  };
+
+  const openAddSpec = () => {
+    setEditingSpec(null);
+    setSpecName(""); setSpecDesc(""); setSpecIcon("Stethoscope"); setSpecFeatures("");
+    setShowSpecModal(true);
+  };
+
+  const openEditSpec = (spec) => {
+    setEditingSpec(spec);
+    setSpecName(spec.name); setSpecDesc(spec.description); setSpecIcon(spec.icon || "Stethoscope");
+    setSpecFeatures((spec.features || []).join("\n"));
+    setShowSpecModal(true);
+  };
+
+  const handleSpecSubmit = (e) => {
+    e.preventDefault();
+    const list = getLocalSpecialties();
+    const payload = {
+      name: specName,
+      description: specDesc,
+      icon: specIcon,
+      features: specFeatures.split("\n").map(s => s.trim()).filter(Boolean)
+    };
+    if (editingSpec) {
+      saveLocalSpecialties(list.map(s => s.id === editingSpec.id ? { ...s, ...payload } : s));
+      alert("تم تعديل التخصص بنجاح!");
+    } else {
+      saveLocalSpecialties([...list, { ...payload, id: `spec-${Date.now()}` }]);
+      alert("تم إضافة التخصص بنجاح!");
+    }
+    setShowSpecModal(false);
+  };
+
+  const deleteSpec = (id) => {
+    if (!confirm("هل تريد حذف هذا التخصص؟")) return;
+    saveLocalSpecialties(getLocalSpecialties().filter(s => s.id !== id));
+  };
+
+  // Tab permission helper
+  const canAccessTab = (tabId) => {
+    if (!currentUser) return false;
+    if (currentUser.role === "superadmin") return true;
+    const allowed = currentUser.allowedTabs || [];
+    return allowed.includes(tabId);
   };
 
   // Login Screen
@@ -603,7 +678,8 @@ export default function Admin({ setCurrentTab }) {
           }}
           className="admin-tab-nav"
         >
-          {/* Bookings is visible to everyone */}
+          {/* Bookings is visible if allowed */}
+          {canAccessTab("bookings") && (
           <button
             onClick={() => setActiveSubTab("bookings")}
             style={{
@@ -621,8 +697,10 @@ export default function Admin({ setCurrentTab }) {
             <CheckSquare size={16} />
             إدارة الحجوزات
           </button>
+          )}
 
           {/* Clinic & Medical Records tab */}
+          {canAccessTab("records") && (
           <button
             onClick={() => setActiveSubTab("records")}
             style={{
@@ -640,11 +718,10 @@ export default function Admin({ setCurrentTab }) {
             <FileText size={16} />
             العيادة والملفات الطبية
           </button>
+          )}
 
-
-          {/* Superadmin specific tabs */}
-          {currentUser.role === "superadmin" && (
-            <>
+          {/* Superadmin / allowed tabs */}
+          {canAccessTab("doctors") && (
               <button
                 onClick={() => setActiveSubTab("doctors")}
                 style={{
@@ -662,7 +739,29 @@ export default function Admin({ setCurrentTab }) {
                 <Stethoscope size={16} />
                 إدارة الأطباء
               </button>
+          )}
 
+          {canAccessTab("specialties") && (
+              <button
+                onClick={() => setActiveSubTab("specialties")}
+                style={{
+                  padding: "0.75rem 1.5rem",
+                  borderRadius: "var(--border-radius-sm)",
+                  fontWeight: "bold",
+                  fontSize: "0.95rem",
+                  backgroundColor: activeSubTab === "specialties" ? "var(--color-primary)" : "transparent",
+                  color: activeSubTab === "specialties" ? "var(--color-white)" : "var(--color-text)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.4rem"
+                }}
+              >
+                <Stethoscope size={16} />
+                التخصصات والعيادات
+              </button>
+          )}
+
+          {canAccessTab("content") && (
               <button
                 onClick={() => setActiveSubTab("content")}
                 style={{
@@ -680,7 +779,9 @@ export default function Admin({ setCurrentTab }) {
                 <Image size={16} />
                 محتوى الموقع
               </button>
+          )}
 
+          {canAccessTab("settings") && (
               <button
                 onClick={() => setActiveSubTab("settings")}
                 style={{
@@ -698,7 +799,9 @@ export default function Admin({ setCurrentTab }) {
                 <Settings size={16} />
                 إعدادات النظام
               </button>
+          )}
 
+          {canAccessTab("users") && (
               <button
                 onClick={() => setActiveSubTab("users")}
                 style={{
@@ -716,7 +819,6 @@ export default function Admin({ setCurrentTab }) {
                 <Users size={16} />
                 إدارة المستخدمين
               </button>
-            </>
           )}
         </div>
 
@@ -1065,7 +1167,7 @@ export default function Admin({ setCurrentTab }) {
           )}
 
           {/* TAB 2: Doctors Management (Superadmin only) */}
-          {activeSubTab === "doctors" && currentUser.role === "superadmin" && (
+          {activeSubTab === "doctors" && canAccessTab("doctors") && (
             <div className="animate-fade">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
                 <h3 style={{ fontSize: "1.2rem", fontWeight: "bold" }}>الأطباء والاستشاريين الحاليين</h3>
@@ -1101,7 +1203,7 @@ export default function Admin({ setCurrentTab }) {
           )}
 
           {/* TAB 3: Site Content Management (Superadmin only) */}
-          {activeSubTab === "content" && currentUser.role === "superadmin" && (
+          {activeSubTab === "content" && canAccessTab("content") && (
             <div className="animate-fade">
               <h3 style={{ fontSize: "1.2rem", fontWeight: "bold", borderBottom: "1px solid var(--color-border)", paddingBottom: "0.5rem", marginBottom: "1.5rem" }}>
                 إدارة محتوى الموقع وسلايدات الهيرو
@@ -1119,7 +1221,13 @@ export default function Admin({ setCurrentTab }) {
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.5rem" }}>
                       <input type="text" placeholder="العنوان الكبير..." className="form-input" value={slideTitle1} onChange={(e) => setSlideTitle1(e.target.value)} />
                       <input type="text" placeholder="الوصف الفرعي..." className="form-input" value={slideSub1} onChange={(e) => setSlideSub1(e.target.value)} />
-                      <input type="text" placeholder="رابط صورة الخلفية..." className="form-input" value={slideImg1} onChange={(e) => setSlideImg1(e.target.value)} />
+                      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                        <input type="text" placeholder="رابط صورة الخلفية..." className="form-input" value={slideImg1} onChange={(e) => setSlideImg1(e.target.value)} />
+                        <label style={{ flexShrink: 0, padding: "0.75rem 1rem", border: "1px solid var(--color-border)", borderRadius: "var(--border-radius-md)", cursor: "pointer", fontSize: "0.8rem", backgroundColor: "var(--color-light)" }}>
+                          رفع
+                          <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files[0]; if(f){ const r = new FileReader(); r.onload = ev => setSlideImg1(ev.target.result); r.readAsDataURL(f); }}} />
+                        </label>
+                      </div>
                     </div>
                   </div>
 
@@ -1129,7 +1237,13 @@ export default function Admin({ setCurrentTab }) {
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.5rem" }}>
                       <input type="text" placeholder="العنوان الكبير..." className="form-input" value={slideTitle2} onChange={(e) => setSlideTitle2(e.target.value)} />
                       <input type="text" placeholder="الوصف الفرعي..." className="form-input" value={slideSub2} onChange={(e) => setSlideSub2(e.target.value)} />
-                      <input type="text" placeholder="رابط صورة الخلفية..." className="form-input" value={slideImg2} onChange={(e) => setSlideImg2(e.target.value)} />
+                      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                        <input type="text" placeholder="رابط صورة الخلفية..." className="form-input" value={slideImg2} onChange={(e) => setSlideImg2(e.target.value)} />
+                        <label style={{ flexShrink: 0, padding: "0.75rem 1rem", border: "1px solid var(--color-border)", borderRadius: "var(--border-radius-md)", cursor: "pointer", fontSize: "0.8rem", backgroundColor: "var(--color-light)" }}>
+                          رفع
+                          <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files[0]; if(f){ const r = new FileReader(); r.onload = ev => setSlideImg2(ev.target.result); r.readAsDataURL(f); }}} />
+                        </label>
+                      </div>
                     </div>
                   </div>
 
@@ -1139,7 +1253,13 @@ export default function Admin({ setCurrentTab }) {
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.5rem" }}>
                       <input type="text" placeholder="العنوان الكبير..." className="form-input" value={slideTitle3} onChange={(e) => setSlideTitle3(e.target.value)} />
                       <input type="text" placeholder="الوصف الفرعي..." className="form-input" value={slideSub3} onChange={(e) => setSlideSub3(e.target.value)} />
-                      <input type="text" placeholder="رابط صورة الخلفية..." className="form-input" value={slideImg3} onChange={(e) => setSlideImg3(e.target.value)} />
+                      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                        <input type="text" placeholder="رابط صورة الخلفية..." className="form-input" value={slideImg3} onChange={(e) => setSlideImg3(e.target.value)} />
+                        <label style={{ flexShrink: 0, padding: "0.75rem 1rem", border: "1px solid var(--color-border)", borderRadius: "var(--border-radius-md)", cursor: "pointer", fontSize: "0.8rem", backgroundColor: "var(--color-light)" }}>
+                          رفع
+                          <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files[0]; if(f){ const r = new FileReader(); r.onload = ev => setSlideImg3(ev.target.result); r.readAsDataURL(f); }}} />
+                        </label>
+                      </div>
                     </div>
                   </div>
 
@@ -1181,7 +1301,7 @@ export default function Admin({ setCurrentTab }) {
           )}
 
           {/* TAB 4: Settings Management (Superadmin only) */}
-          {activeSubTab === "settings" && currentUser.role === "superadmin" && (
+          {activeSubTab === "settings" && canAccessTab("settings") && (
             <div className="animate-fade">
               <h3 style={{ fontSize: "1.2rem", fontWeight: "bold", borderBottom: "1px solid var(--color-border)", paddingBottom: "0.5rem", marginBottom: "1.5rem" }}>
                 إعدادات النظام العامة
@@ -1277,8 +1397,56 @@ export default function Admin({ setCurrentTab }) {
             </div>
           )}
 
+          {/* TAB: Specialties & Clinics Management */}
+          {activeSubTab === "specialties" && canAccessTab("specialties") && (
+            <div className="animate-fade">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+                <h3 style={{ fontSize: "1.2rem", fontWeight: "bold" }}>إدارة التخصصات والعيادات</h3>
+                <button onClick={openAddSpec} className="btn btn-primary" style={{ padding: "0.5rem 1.25rem", fontSize: "0.9rem", gap: "0.3rem" }}>
+                  <Plus size={16} />
+                  إضافة تخصص جديد
+                </button>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1rem" }}>
+                {getLocalSpecialties().map((spec) => {
+                  const IconComp = require ? null : null; // just use name
+                  return (
+                    <div key={spec.id} className="luxury-card" style={{ padding: "1.25rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <div>
+                          <h4 style={{ fontWeight: "700", color: "var(--color-dark)", marginBottom: "0.25rem" }}>{spec.name}</h4>
+                          <span style={{ fontSize: "0.78rem", color: "var(--color-text-light)", fontFamily: "monospace" }}>أيقونة: {spec.icon || "Stethoscope"}</span>
+                        </div>
+                        <div style={{ display: "flex", gap: "0.4rem", flexShrink: 0 }}>
+                          <button onClick={() => openEditSpec(spec)} style={{ padding: "0.35rem", border: "1px solid #cbd5e1", borderRadius: "4px", color: "var(--color-primary)" }}>
+                            <Edit size={13} />
+                          </button>
+                          <button onClick={() => deleteSpec(spec.id)} style={{ padding: "0.35rem", border: "1px solid var(--color-danger)", borderRadius: "4px", color: "var(--color-danger)" }}>
+                            <Trash size={13} />
+                          </button>
+                        </div>
+                      </div>
+                      <p style={{ fontSize: "0.85rem", color: "var(--color-text-light)", lineHeight: "1.5" }}>{spec.description}</p>
+                      {spec.features && spec.features.length > 0 && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem" }}>
+                          {spec.features.slice(0, 3).map((f, i) => (
+                            <span key={i} style={{ fontSize: "0.75rem", backgroundColor: "rgba(42,157,181,0.08)", color: "var(--color-primary)", padding: "0.2rem 0.6rem", borderRadius: "20px" }}>
+                              {f}
+                            </span>
+                          ))}
+                          {spec.features.length > 3 && <span style={{ fontSize: "0.75rem", color: "var(--color-text-light)" }}>+{spec.features.length - 3}</span>}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* TAB 5: User Management (Superadmin only) */}
-          {activeSubTab === "users" && currentUser.role === "superadmin" && (
+          {activeSubTab === "users" && canAccessTab("users") && (
             <div className="animate-fade">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
                 <h3 style={{ fontSize: "1.2rem", fontWeight: "bold" }}>حسابات المستخدمين وصلاحياتهم</h3>
@@ -1632,6 +1800,36 @@ export default function Admin({ setCurrentTab }) {
                 </div>
               )}
 
+              {/* Tab permissions (non-superadmin only) */}
+              {usrRole !== "superadmin" && (
+                <div>
+                  <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "bold", marginBottom: "0.5rem" }}>التبويبات المسموح بها:</label>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem", backgroundColor: "var(--color-light)", padding: "0.75rem", borderRadius: "var(--border-radius-sm)", border: "1px solid var(--color-border)" }}>
+                    {[
+                      { id: "bookings",    label: "إدارة الحجوزات" },
+                      { id: "records",     label: "العيادة والملفات الطبية" },
+                      { id: "doctors",     label: "إدارة الأطباء" },
+                      { id: "specialties", label: "التخصصات والعيادات" },
+                      { id: "content",     label: "محتوى الموقع" },
+                      { id: "settings",    label: "إعدادات النظام" },
+                      { id: "users",       label: "إدارة المستخدمين" },
+                    ].map(tab => (
+                      <label key={tab.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.88rem", cursor: "pointer" }}>
+                        <input
+                          type="checkbox"
+                          checked={usrAllowedTabs.includes(tab.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) setUsrAllowedTabs(prev => [...prev, tab.id]);
+                            else setUsrAllowedTabs(prev => prev.filter(t => t !== tab.id));
+                          }}
+                        />
+                        {tab.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "bold", marginBottom: "0.3rem" }}>كلمة المرور</label>
                 <input type="text" required placeholder="مثال: pass123" className="form-input" value={usrPassword} onChange={(e) => setUsrPassword(e.target.value)} />
@@ -1642,6 +1840,51 @@ export default function Admin({ setCurrentTab }) {
                 <button type="submit" className="btn btn-secondary" style={{ padding: "0.5rem 2rem" }}>حفظ</button>
               </div>
 
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* SPECIALTY CREATE/EDIT MODAL */}
+      {showSpecModal && (
+        <div style={{ position: "fixed", top: 0, bottom: 0, left: 0, right: 0, backgroundColor: "rgba(0,0,0,0.6)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, padding: "1rem" }}>
+          <div className="luxury-card animate-fade" style={{ width: "100%", maxWidth: "500px", padding: "2.5rem", maxHeight: "90vh", overflowY: "auto" }}>
+            <h3 style={{ fontSize: "1.3rem", fontWeight: "bold", marginBottom: "1.5rem" }}>
+              {editingSpec ? `تعديل: ${editingSpec.name}` : "إضافة تخصص طبي جديد"}
+            </h3>
+
+            <form onSubmit={handleSpecSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              <div>
+                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "bold", marginBottom: "0.3rem" }}>اسم التخصص</label>
+                <input type="text" required className="form-input" placeholder="مثال: طب القلب والأوعية" value={specName} onChange={(e) => setSpecName(e.target.value)} />
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "bold", marginBottom: "0.3rem" }}>وصف مختصر</label>
+                <textarea rows="2" required className="form-input" style={{ resize: "none" }} placeholder="وصف الخدمات المقدمة في هذا التخصص..." value={specDesc} onChange={(e) => setSpecDesc(e.target.value)}></textarea>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "bold", marginBottom: "0.3rem" }}>
+                  اسم الأيقونة (من Lucide React)
+                </label>
+                <input type="text" className="form-input" placeholder="مثال: Heart, Brain, Eye, Baby..." value={specIcon} onChange={(e) => setSpecIcon(e.target.value)} />
+                <span style={{ fontSize: "0.78rem", color: "var(--color-text-light)", display: "block", marginTop: "0.3rem" }}>
+                  أمثلة: Heart، Stethoscope، Eye، Baby، Bone، Brain، Activity، Syringe، Microscope
+                </span>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "bold", marginBottom: "0.3rem" }}>
+                  الخدمات الفرعية (سطر لكل خدمة)
+                </label>
+                <textarea rows="4" className="form-input" style={{ resize: "none" }} placeholder={"قسطرة القلب التشخيصية\nرسم القلب الكهربائي\nالإيكو القلبي"} value={specFeatures} onChange={(e) => setSpecFeatures(e.target.value)}></textarea>
+              </div>
+
+              <div style={{ display: "flex", gap: "0.75rem", justifyContent: "flex-end", marginTop: "0.5rem" }}>
+                <button type="button" onClick={() => setShowSpecModal(false)} className="btn btn-outline" style={{ padding: "0.5rem 1.5rem" }}>إلغاء</button>
+                <button type="submit" className="btn btn-primary" style={{ padding: "0.5rem 2rem" }}>حفظ التخصص</button>
+              </div>
             </form>
           </div>
         </div>
