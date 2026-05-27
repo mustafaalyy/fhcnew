@@ -36,7 +36,7 @@ export default function PatientPortal() {
     return () => clearInterval(interval);
   }, [showOtp, otpTimer]);
 
-  // Login handler - Step 1: Verify phone & bookingId
+  // Login handler - Direct verify phone & bookingId (no OTP)
   const handleLoginSubmit = (e) => {
     e.preventDefault();
     setError("");
@@ -46,7 +46,6 @@ export default function PatientPortal() {
       return;
     }
 
-    // Search in bookings
     const cleanPhone = phone.trim();
     const cleanBookingId = bookingId.trim().toUpperCase();
 
@@ -59,51 +58,14 @@ export default function PatientPortal() {
       return;
     }
 
-    // Found booking, transition to OTP step
-    setShowOtp(true);
-    setOtpTimer(60);
-    
-    // Simulate SMS notification
-    setTimeout(() => {
-      setOtpNotification(` Family Health Care: رمز التحقق الخاص بك هو 1234 للدخول إلى الملف الطبي للمريض ${matchingBooking.patientName}.`);
-    }, 1500);
-  };
-
-  // OTP Verification handler
-  const handleVerifyOtp = (e) => {
-    e.preventDefault();
-    setOtpError("");
-
-    if (otp !== "1234") {
-      setOtpError("رمز التحقق غير صحيح. يرجى إدخال '1234' للمحاكاة.");
-      return;
-    }
-
-    // OTP Correct! Load all patient details based on phone
-    const cleanPhone = phone.trim();
+    // Load all patient bookings by phone
     const patientBookings = bookings.filter((b) => b.phone === cleanPhone);
-    const firstName = patientBookings[0].patientName;
-    const firstAge = patientBookings[0].age;
-
-    // Login successful
     setPatientData({
-      name: firstName,
+      name: matchingBooking.patientName,
       phone: cleanPhone,
-      age: firstAge,
+      age: matchingBooking.age,
       bookings: patientBookings
     });
-    
-    setShowOtp(false);
-    setOtpNotification("");
-  };
-
-  // Resend OTP simulation
-  const handleResendOtp = () => {
-    setOtpTimer(60);
-    setOtpNotification(` Family Health Care: تم إعادة إرسال الرمز. رمز التحقق للمحاكاة هو 1234.`);
-    setTimeout(() => {
-      setOtpNotification("");
-    }, 6000);
   };
 
   // Logout handler
@@ -198,25 +160,10 @@ export default function PatientPortal() {
 
       <div className="container">
         
-        {/* Unauthenticated View */}
-        {!patientData ? (
+              {!patientData ? (
           <div style={{ maxWidth: "480px", margin: "0 auto" }}>
-            
-            {/* Header Section */}
             <div style={{ textAlign: "center", marginBottom: "2rem" }}>
-              <div 
-                style={{ 
-                  display: "inline-flex", 
-                  width: "60px", 
-                  height: "60px", 
-                  borderRadius: "50%", 
-                  backgroundColor: "rgba(42, 157, 181, 0.1)", 
-                  color: "var(--color-primary)", 
-                  alignItems: "center", 
-                  justifyContent: "center",
-                  marginBottom: "1rem"
-                }}
-              >
+              <div style={{ display: "inline-flex", width: "60px", height: "60px", borderRadius: "50%", backgroundColor: "rgba(42, 157, 181, 0.1)", color: "var(--color-primary)", alignItems: "center", justifyContent: "center", marginBottom: "1rem" }}>
                 <Lock size={28} />
               </div>
               <h2 style={{ fontFamily: "Cormorant Garamond, Tajawal", fontSize: "2rem", color: "var(--color-dark)", fontWeight: "bold" }}>
@@ -227,199 +174,39 @@ export default function PatientPortal() {
               </p>
             </div>
 
-            {/* Login Card */}
-            <div 
-              style={{
-                backgroundColor: "var(--color-white)",
-                borderRadius: "16px",
-                padding: "2.5rem 2rem",
-                boxShadow: "0 10px 30px rgba(28, 43, 53, 0.05)",
-                border: "1px solid rgba(42, 157, 181, 0.08)"
-              }}
-            >
-              {!showOtp ? (
-                /* Step 1: Initial Login Form */
-                <form onSubmit={handleLoginSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.2rem" }}>
-                  {error && (
-                    <div 
-                      style={{ 
-                        backgroundColor: "rgba(239, 68, 68, 0.08)", 
-                        color: "#ef4444", 
-                        padding: "0.75rem 1rem", 
-                        borderRadius: "8px", 
-                        fontSize: "0.85rem",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.5rem",
-                        border: "1px solid rgba(239, 68, 68, 0.15)"
-                      }}
-                    >
-                      <AlertCircle size={16} />
-                      <span>{error}</span>
-                    </div>
-                  )}
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                    <label style={{ fontWeight: "600", fontSize: "0.9rem", color: "var(--color-dark)" }}>
-                      رقم الهاتف المسجل بالحجز
-                    </label>
-                    <div style={{ position: "relative" }}>
-                      <Phone 
-                        size={18} 
-                        style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-light)" }} 
-                      />
-                      <input
-                        type="tel"
-                        placeholder="مثال: 01099887766"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        style={{
-                          width: "100%",
-                          padding: "0.75rem 2.5rem 0.75rem 1rem",
-                          borderRadius: "8px",
-                          border: "1px solid #e2e8f0",
-                          outline: "none",
-                          fontSize: "1rem"
-                        }}
-                      />
-                    </div>
+            <div style={{ backgroundColor: "var(--color-white)", borderRadius: "16px", padding: "2.5rem 2rem", boxShadow: "0 10px 30px rgba(28, 43, 53, 0.05)", border: "1px solid rgba(42, 157, 181, 0.08)" }}>
+              <form onSubmit={handleLoginSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.2rem" }}>
+                {error && (
+                  <div style={{ backgroundColor: "rgba(239, 68, 68, 0.08)", color: "#ef4444", padding: "0.75rem 1rem", borderRadius: "8px", fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.5rem", border: "1px solid rgba(239, 68, 68, 0.15)" }}>
+                    <AlertCircle size={16} />
+                    <span>{error}</span>
                   </div>
+                )}
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                    <label style={{ fontWeight: "600", fontSize: "0.9rem", color: "var(--color-dark)" }}>
-                      رقم مرجع الحجز
-                    </label>
-                    <div style={{ position: "relative" }}>
-                      <Key 
-                        size={18} 
-                        style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-light)" }} 
-                      />
-                      <input
-                        type="text"
-                        placeholder="مثال: FHH-2026-8092"
-                        value={bookingId}
-                        onChange={(e) => setBookingId(e.target.value)}
-                        style={{
-                          width: "100%",
-                          padding: "0.75rem 2.5rem 0.75rem 1rem",
-                          borderRadius: "8px",
-                          border: "1px solid #e2e8f0",
-                          outline: "none",
-                          fontSize: "1rem",
-                          textTransform: "uppercase"
-                        }}
-                      />
-                    </div>
-                    <span style={{ fontSize: "0.75rem", color: "var(--color-text-light)" }}>
-                      * تجد رقم الحجز في إيصال تأكيد الحجز الذي استلمته عند الحجز
-                    </span>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  <label style={{ fontWeight: "600", fontSize: "0.9rem", color: "var(--color-dark)" }}>رقم الهاتف المسجل بالحجز</label>
+                  <div style={{ position: "relative" }}>
+                    <Phone size={18} style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-light)" }} />
+                    <input type="tel" placeholder="مثال: 01099887766" value={phone} onChange={(e) => setPhone(e.target.value)}
+                      style={{ width: "100%", padding: "0.75rem 2.5rem 0.75rem 1rem", borderRadius: "8px", border: "1px solid #e2e8f0", outline: "none", fontSize: "1rem" }} />
                   </div>
+                </div>
 
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                    style={{ width: "100%", padding: "0.85rem", marginTop: "0.5rem", fontWeight: "bold" }}
-                  >
-                    إرسال رمز التحقق
-                  </button>
-
-                  <div style={{ textAlign: "center", borderTop: "1px solid #f1f5f9", paddingTop: "1.2rem", marginTop: "0.5rem" }}>
-                    <p style={{ fontSize: "0.85rem", color: "var(--color-text-light)", margin: 0 }}>
-                      للتجربة السريعة: استخدم رقم الهاتف <strong style={{ color: "var(--color-dark)" }}>01099887766</strong> ورقم الحجز <strong style={{ color: "var(--color-dark)" }}>FHH-2026-8092</strong>
-                    </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  <label style={{ fontWeight: "600", fontSize: "0.9rem", color: "var(--color-dark)" }}>رقم مرجع الحجز</label>
+                  <div style={{ position: "relative" }}>
+                    <Key size={18} style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-light)" }} />
+                    <input type="text" placeholder="مثال: FHH-2026-8092" value={bookingId} onChange={(e) => setBookingId(e.target.value)}
+                      style={{ width: "100%", padding: "0.75rem 2.5rem 0.75rem 1rem", borderRadius: "8px", border: "1px solid #e2e8f0", outline: "none", fontSize: "1rem", textTransform: "uppercase" }} />
                   </div>
-                </form>
-              ) : (
-                /* Step 2: OTP Verification Form */
-                <form onSubmit={handleVerifyOtp} style={{ display: "flex", flexDirection: "column", gap: "1.2rem" }}>
-                  {otpError && (
-                    <div 
-                      style={{ 
-                        backgroundColor: "rgba(239, 68, 68, 0.08)", 
-                        color: "#ef4444", 
-                        padding: "0.75rem 1rem", 
-                        borderRadius: "8px", 
-                        fontSize: "0.85rem",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.5rem",
-                        border: "1px solid rgba(239, 68, 68, 0.15)"
-                      }}
-                    >
-                      <AlertCircle size={16} />
-                      <span>{otpError}</span>
-                    </div>
-                  )}
+                  <span style={{ fontSize: "0.75rem", color: "var(--color-text-light)" }}>* تجد رقم الحجز في إيصال تأكيد الحجز الذي استلمته عند الحجز</span>
+                </div>
 
-                  <div style={{ textAlign: "center" }}>
-                    <p style={{ fontSize: "0.95rem", color: "var(--color-text)", margin: "0 0 0.5rem 0" }}>
-                      تم إرسال رمز تحقق مؤقت عبر رسالة نصية إلى رقمك:
-                    </p>
-                    <strong style={{ fontSize: "1.1rem", color: "var(--color-dark)", letterSpacing: "1px" }}>
-                      {phone.substring(0, 4)}***{phone.substring(phone.length - 4)}
-                    </strong>
-                  </div>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "1rem" }}>
-                    <label style={{ fontWeight: "600", fontSize: "0.9rem", color: "var(--color-dark)", textAlign: "center" }}>
-                      أدخل رمز التحقق (OTP)
-                    </label>
-                    <input
-                      type="text"
-                      maxLength="4"
-                      placeholder="XXXX"
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
-                      style={{
-                        width: "120px",
-                        margin: "0 auto",
-                        padding: "0.75rem",
-                        borderRadius: "8px",
-                        border: "2px solid var(--color-primary)",
-                        outline: "none",
-                        fontSize: "1.5rem",
-                        textAlign: "center",
-                        letterSpacing: "8px",
-                        fontWeight: "bold"
-                      }}
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                    style={{ width: "100%", padding: "0.85rem", marginTop: "0.5rem", fontWeight: "bold" }}
-                  >
-                    تأكيد الدخول للملف
-                  </button>
-
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.85rem", marginTop: "0.5rem" }}>
-                    <button
-                      type="button"
-                      onClick={() => setShowOtp(false)}
-                      style={{ background: "none", border: "none", color: "var(--color-text-light)", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.2rem" }}
-                    >
-                      تغيير رقم الهاتف
-                    </button>
-
-                    {otpTimer > 0 ? (
-                      <span style={{ color: "var(--color-text-light)" }}>
-                        إعادة إرسال خلال {otpTimer} ثانية
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleResendOtp}
-                        style={{ background: "none", border: "none", color: "var(--color-secondary)", cursor: "pointer", fontWeight: "bold" }}
-                      >
-                        إعادة إرسال الرمز
-                      </button>
-                    )}
-                  </div>
-                </form>
-              )}
+                <button type="submit" className="btn btn-primary" style={{ width: "100%", padding: "0.85rem", marginTop: "0.5rem", fontWeight: "bold" }}>
+                  دخول الملف الطبي
+                </button>
+              </form>
             </div>
-
           </div>
         ) : (
           /* Authenticated Dashboard View */

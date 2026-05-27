@@ -110,31 +110,12 @@ export default function Header({ currentTab, setCurrentTab }) {
             onClick={handleLogoSecretClick}
             style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}
           >
-            <div 
-              style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "50%",
-                backgroundColor: "var(--color-primary)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "var(--color-white)",
-                fontWeight: "bold",
-                fontSize: "1.2rem",
-                boxShadow: "0 4px 10px rgba(42,157,181,0.2)"
-              }}
-            >
-              FH
-            </div>
-            <div>
-              <h1 style={{ fontSize: "1.25rem", fontWeight: "bold", color: "var(--color-dark)", lineHeight: "1.1" }}>
-                {settings.hospitalName || "Family Health Care"}
-              </h1>
-              <span style={{ fontSize: "0.75rem", color: "var(--color-text-light)", display: "block" }}>
-                مستشفى عائلي تخصصي
-              </span>
-            </div>
+            <img
+              src="/logo.png"
+              alt="Family Health Care"
+              style={{ height: "52px", width: "auto", objectFit: "contain" }}
+              onError={(e) => { e.target.style.display = "none"; }}
+            />
           </div>
 
           {/* Desktop Navigation Links */}

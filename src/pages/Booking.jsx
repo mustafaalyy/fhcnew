@@ -84,7 +84,7 @@ export default function Booking({ selectedSpecialtyId, setSelectedSpecialtyId, s
     }
   };
 
-  const handleConfirmBooking = (e) => {
+  const handleConfirmBooking = async (e) => {
     e.preventDefault();
     if (!patientName || !phone || !age) {
       alert("يرجى ملء جميع البيانات الأساسية المطلوبة.");
@@ -105,12 +105,20 @@ export default function Booking({ selectedSpecialtyId, setSelectedSpecialtyId, s
       status: "pending"
     };
 
-    const newBooking = addBooking(bookingPayload);
+    const newBooking = await addBooking(bookingPayload);
     setConfirmedBooking(newBooking);
-    setStep(5); // Confirmation step
+    setStep(5);
   };
 
-  const handleReset = () => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyId = () => {
+    if (confirmedBooking?.id) {
+      navigator.clipboard.writeText(confirmedBooking.id);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
     setStep(1);
     setSelectedSpecialtyId("");
     setSelectedDoctorId("");
@@ -632,7 +640,23 @@ export default function Booking({ selectedSpecialtyId, setSelectedSpecialtyId, s
                 </div>
                 <div style={{ textAlign: "left" }}>
                   <span style={{ display: "block", fontSize: "0.85rem", color: "var(--color-text-light)" }}>رقم الحجز المرجعي</span>
-                  <span style={{ fontSize: "1.1rem", fontWeight: "bold", color: "var(--color-primary)" }}>{confirmedBooking?.id}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <span style={{ fontSize: "1.1rem", fontWeight: "bold", color: "var(--color-primary)" }}>{confirmedBooking?.id}</span>
+                    <button
+                      onClick={handleCopyId}
+                      style={{
+                        padding: "0.2rem 0.5rem",
+                        fontSize: "0.75rem",
+                        backgroundColor: copied ? "rgba(90,171,107,0.15)" : "rgba(42,157,181,0.1)",
+                        color: copied ? "var(--color-secondary)" : "var(--color-primary)",
+                        border: "1px solid currentColor",
+                        borderRadius: "4px",
+                        cursor: "pointer"
+                      }}
+                    >
+                      {copied ? "✓ تم النسخ" : "نسخ"}
+                    </button>
+                  </div>
                 </div>
               </div>
 
