@@ -265,26 +265,25 @@ export default function Admin({ setCurrentTab }) {
     setAboutMission(about.mission || "");
     setAboutVision(about.vision || "");
     // Load Settings
-    setSetHospitalName(settings.hospitalName || settings.hospitalNameAr || "");
-    setSetLogoImage(settings.logo || "");
-    setSetPrimaryColor(settings.primaryColor || settings.primary_color || "");
-    setSetSecondaryColor(settings.secondaryColor || settings.secondary_color || "");
-    setSetDarkColor(settings.darkColor || settings.dark_color || "");
-    setSetPhone(settings.phone || settings.mainPhone || "");
-    setSetEmergencyPhone(settings.emergencyPhone || settings.emergency_phone || "");
-    setSetWhatsapp(settings.whatsapp || settings.whatsappNumber || "");
-    setSetAddress(settings.address || "");
-    setSetMapsUrl(settings.mapsUrl || settings.googleMapsUrl || "");
-    setSetMapsEmbed(settings.mapsEmbedSrc || settings.mapsEmbed || "");
-    setSetExpStat(settings.stats?.experience || settings.experience || "");
-    setSetPatStat(settings.stats?.patients || settings.patients || "");
-    setSetDocStat(settings.stats?.doctors || settings.doctorsCount || "");
-    setSetSatStat(settings.stats?.satisfaction || settings.satisfaction || "");
+    const normalizedSettings = settings || {};
+    setSetHospitalName(normalizedSettings.hospitalName || normalizedSettings.hospitalNameAr || normalizedSettings.logoText || "");
+    setSetLogoImage(normalizedSettings.logo || "");
+    setSetPrimaryColor(normalizedSettings.primaryColor || normalizedSettings.primary_color || "#2a9db5");
+    setSetSecondaryColor(normalizedSettings.secondaryColor || normalizedSettings.secondary_color || "#5aab6b");
+    setSetDarkColor(normalizedSettings.darkColor || normalizedSettings.dark_color || "#1c2b35");
+    setSetPhone(normalizedSettings.phone || normalizedSettings.mainPhone || "");
+    setSetEmergencyPhone(normalizedSettings.emergencyPhone || normalizedSettings.emergency_phone || "");
+    setSetWhatsapp(normalizedSettings.whatsapp || normalizedSettings.whatsappNumber || "");
+    setSetAddress(normalizedSettings.address || "");
+    setSetMapsUrl(normalizedSettings.mapsUrl || normalizedSettings.googleMapsUrl || "");
+    setSetMapsEmbed(normalizedSettings.mapsEmbedSrc || normalizedSettings.mapsEmbed || "");
+    setSetExpStat(normalizedSettings.stats?.experience || normalizedSettings.experience || "");
+    setSetPatStat(normalizedSettings.stats?.patients || normalizedSettings.patients || "");
+    setSetDocStat(normalizedSettings.stats?.doctors || normalizedSettings.doctorsCount || "");
+    setSetSatStat(normalizedSettings.stats?.satisfaction || normalizedSettings.satisfaction || "");
   };
 
-  // Keep admin edit forms synced with the latest context/Supabase data.
-  // This is required after refresh/cache clear because the user session may be restored
-  // without pressing the login button again.
+  // Sync admin form fields whenever Supabase/context data finishes loading.
   useEffect(() => {
     if (!currentUser) return;
     loadEditorStates();
