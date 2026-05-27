@@ -80,6 +80,7 @@ export default function Admin({ setCurrentTab }) {
 
   // Settings form state
   const [setHospitalName, setSetHospitalName] = useState("");
+  const [setLogoImage, setSetLogoImage] = useState("");
   const [setPrimaryColor, setSetPrimaryColor] = useState("");
   const [setSecondaryColor, setSetSecondaryColor] = useState("");
   const [setDarkColor, setSetDarkColor] = useState("");
@@ -249,6 +250,7 @@ export default function Admin({ setCurrentTab }) {
     setAboutVision(aboutSections.vision || "");
     // Load Settings
     setSetHospitalName(settings.hospitalName || "");
+    setSetLogoImage(settings.logo || localStorage.getItem("fhh_logo") || "");
     setSetPrimaryColor(settings.primaryColor || "");
     setSetSecondaryColor(settings.secondaryColor || "");
     setSetDarkColor(settings.darkColor || "");
@@ -345,6 +347,7 @@ export default function Admin({ setCurrentTab }) {
     updateSettings({
       hospitalName: setHospitalName,
       logoText: setHospitalName,
+      logo: setLogoImage,
       primaryColor: setPrimaryColor,
       secondaryColor: setSecondaryColor,
       darkColor: setDarkColor,
@@ -1325,6 +1328,32 @@ export default function Admin({ setCurrentTab }) {
                   <div>
                     <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "bold", marginBottom: "0.4rem" }}>اسم المستشفى</label>
                     <input type="text" className="form-input" value={setHospitalName} onChange={(e) => setSetHospitalName(e.target.value)} />
+                  </div>
+
+                  {/* Logo Upload */}
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "bold", marginBottom: "0.4rem" }}>لوجو المستشفى</label>
+                    <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+                      {setLogoImage && (
+                        <img src={setLogoImage} alt="logo preview" style={{ height: "50px", objectFit: "contain", borderRadius: "6px", border: "1px solid var(--color-border)" }} />
+                      )}
+                      <label style={{ padding: "0.6rem 1.2rem", backgroundColor: "var(--color-light)", border: "1px solid var(--color-border)", borderRadius: "var(--border-radius-sm)", cursor: "pointer", fontSize: "0.85rem", fontWeight: "600" }}>
+                        📁 رفع لوجو جديد
+                        <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => {
+                          const f = e.target.files[0];
+                          if (f) {
+                            const r = new FileReader();
+                            r.onload = ev => setSetLogoImage(ev.target.result);
+                            r.readAsDataURL(f);
+                          }
+                        }} />
+                      </label>
+                      {setLogoImage && (
+                        <button type="button" onClick={() => setSetLogoImage("")} style={{ fontSize: "0.8rem", color: "var(--color-danger)", background: "none", border: "none", cursor: "pointer" }}>
+                          حذف
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.5rem" }}>

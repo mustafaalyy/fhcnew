@@ -107,12 +107,12 @@ export default function Header({ currentTab, setCurrentTab }) {
           
           {/* Logo */}
           <div 
-            onClick={handleLogoSecretClick}
+            onClick={() => { handleNavClick("home"); handleLogoSecretClick(); }}
             style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}
           >
             <img
-              src="/logo.png"
-              alt="Family Health Care"
+              src={settings.logo || localStorage.getItem("fhh_logo") || "/logo.png"}
+              alt={settings.hospitalName || "Family Health Care"}
               style={{ height: "52px", width: "auto", objectFit: "contain" }}
               onError={(e) => { e.target.style.display = "none"; }}
             />
