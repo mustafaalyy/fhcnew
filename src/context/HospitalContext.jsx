@@ -66,14 +66,16 @@ export const HospitalProvider = ({ children }) => {
   const [slides, setSlides] = useState(INITIAL_SLIDES);
   const [aboutSections, setAboutSections] = useState(INITIAL_ABOUT_SECTIONS);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
-  const [bookings, setBookings] = useState([]);
+  const [bookings, setBookings] = useState(INITIAL_BOOKINGS);
   const [bookingsLoading, setBookingsLoading] = useState(true);
   const [users, setUsers] = useState(INITIAL_USERS);
   const [prescriptions, setPrescriptions] = useState(INITIAL_PRESCRIPTIONS);
   const [reports, setReports] = useState(INITIAL_REPORTS);
   const [currentUser, setCurrentUser] = useState(null);
 
-  // ── Load bookings from Supabase ──────────────────────────────────────────
+  
+  const [storageReady, setStorageReady] = useState(false);
+// ── Load bookings from Supabase ──────────────────────────────────────────
   const fetchBookings = async () => {
     try {
       setBookingsLoading(true);
