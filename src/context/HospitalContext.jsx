@@ -100,18 +100,44 @@ export const HospitalProvider = ({ children }) => {
     const localUsers     = localStorage.getItem("fhh_users");
     const localUser      = localStorage.getItem("fhh_current_user");
 
-    setDoctors(safeParseStorage(localDoctors, INITIAL_DOCTORS));
-    setSlides(safeParseStorage(localSlides, INITIAL_SLIDES));
-    setAboutSections(safeParseStorage(localAbout, INITIAL_ABOUT_SECTIONS));
-    setSettings(safeParseStorage(localSettings, DEFAULT_SETTINGS));
-    setUsers(safeParseStorage(localUsers, INITIAL_USERS));
+    const nextDoctors = safeParseStorage(localDoctors, INITIAL_DOCTORS);
+    setDoctors(nextDoctors);
+    if (!localDoctors) localStorage.setItem("fhh_doctors", JSON.stringify(nextDoctors));
+
+    const nextSlides = safeParseStorage(localSlides, INITIAL_SLIDES);
+    setSlides(nextSlides);
+    if (!localSlides) localStorage.setItem("fhh_slides", JSON.stringify(nextSlides));
+
+    const nextAbout = safeParseStorage(localAbout, INITIAL_ABOUT_SECTIONS);
+    setAboutSections(nextAbout);
+    if (!localAbout) localStorage.setItem("fhh_about", JSON.stringify(nextAbout));
+
+    const nextSettings = safeParseStorage(localSettings, DEFAULT_SETTINGS);
+    setSettings(nextSettings);
+    if (!localSettings) localStorage.setItem("fhh_settings", JSON.stringify(nextSettings));
+
+    const nextUsers = safeParseStorage(localUsers, INITIAL_USERS);
+    setUsers(nextUsers);
+    if (!localUsers) localStorage.setItem("fhh_users", JSON.stringify(nextUsers));
 
     const localPrescriptions = localStorage.getItem("fhh_prescriptions");
     const localReports = localStorage.getItem("fhh_reports");
     setPrescriptions(safeParseStorage(localPrescriptions, INITIAL_PRESCRIPTIONS));
     setReports(safeParseStorage(localReports, INITIAL_REPORTS));
 
-    if (localUser) setCurrentUser(JSON.parse(localUser));
+    // Only restore session if user was genuinely logged in
+    if (localUser) {
+      try {
+        const parsed = JSON.parse(localUser);
+        if (parsed && parsed.username && parsed.role) {
+          setCurrentUser(parsed);
+        } else {
+          localStorage.removeItem("fhh_current_user");
+        }
+      } catch {
+        localStorage.removeItem("fhh_current_user");
+      }
+    }
 
     // Load bookings from Supabase
     fetchBookings();
@@ -232,6 +258,10 @@ export const HospitalProvider = ({ children }) => {
   const updateSettings = (newSettings) => {
     setSettings(newSettings);
     localStorage.setItem("fhh_settings", JSON.stringify(newSettings));
+    // Save logo separately if present
+    if (newSettings.logo) {
+      localStorage.setItem("fhh_logo", newSettings.logo);
+    }
   };
 
   // ── User Operations ──────────────────────────────────────────────────────
