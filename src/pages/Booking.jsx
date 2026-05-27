@@ -119,6 +119,8 @@ export default function Booking({ selectedSpecialtyId, setSelectedSpecialtyId, s
       setTimeout(() => setCopied(false), 2000);
     }
   };
+
+  const handleReset = () => {
     setStep(1);
     setSelectedSpecialtyId("");
     setSelectedDoctorId("");
