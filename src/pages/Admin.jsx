@@ -292,11 +292,12 @@ export default function Admin({ setCurrentTab }) {
   }, [slides, aboutSections, settings]);
 
   // Sync admin form fields whenever Supabase/context data finishes loading.
-  useEffect(() => {
-    if (!currentUser) return;
-    loadEditorStates();
-  }, [currentUser, loadEditorStates]);
-
+useEffect(() => {
+  if (!currentUser) return;
+  if (cloudLoading) return;
+  if (!settings?.primaryColor && !settings?.phone) return;
+  loadEditorStates();
+}, [currentUser, cloudLoading, loadEditorStates]);
   // CSV Export function
   const handleCSVExport = () => {
     const headers = ["رقم الحجز", "اسم المريض", "رقم الهاتف", "العمر", "التخصص", "الطبيب", "التاريخ", "التوقيت", "الحالة", "تاريخ التسجيل"];
