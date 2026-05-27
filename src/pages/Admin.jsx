@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useHospital } from "../context/HospitalContext";
 import { 
   Lock, User, LogOut, Check, X, Shield, Plus, Edit, Trash, Download, Settings, Users, FileText, Stethoscope, Image, CheckSquare
@@ -67,265 +67,82 @@ export default function Admin({ setCurrentTab }) {
   const [docDays, setDocDays] = useState("");
   const [docHours, setDocHours] = useState("");
 
-  // Slide form state
-  const [slideTitle1, setSlideTitle1] = useState(() => slides?.[0]?.title || "");
-  const [slideSub1, setSlideSub1] = useState(() => slides?.[0]?.subtitle || "");
-  const [slideImg1, setSlideImg1] = useState(() => slides?.[0]?.image || "");
-  const [slideTitle2, setSlideTitle2] = useState(() => slides?.[1]?.title || "");
-  const [slideSub2, setSlideSub2] = useState(() => slides?.[1]?.subtitle || "");
-  const [slideImg2, setSlideImg2] = useState(() => slides?.[1]?.image || "");
-  const [slideTitle3, setSlideTitle3] = useState(() => slides?.[2]?.title || "");
-  const [slideSub3, setSlideSub3] = useState(() => slides?.[2]?.subtitle || "");
-  const [slideImg3, setSlideImg3] = useState(() => slides?.[2]?.image || "");
-
-  // About forms state
-  const [aboutStory, setAboutStory] = useState(() => { if (!aboutSections) return ""; if (Array.isArray(aboutSections)) return aboutSections.find(i => i.id === "story" || i.key === "story")?.content || ""; return aboutSections.story || ""; });
-  const [aboutMission, setAboutMission] = useState(() => { if (!aboutSections) return ""; if (Array.isArray(aboutSections)) return aboutSections.find(i => i.id === "mission" || i.key === "mission")?.content || ""; return aboutSections.mission || ""; });
-  const [aboutVision, setAboutVision] = useState(() => { if (!aboutSections) return ""; if (Array.isArray(aboutSections)) return aboutSections.find(i => i.id === "vision" || i.key === "vision")?.content || ""; return aboutSections.vision || ""; });
-
-  // Settings form state
-  const [setHospitalName, setSetHospitalName] = useState(() => settings?.hospitalName || settings?.logoText || "");
-  const [setLogoImage, setSetLogoImage] = useState(() => settings?.logo || "");
-  const [setPrimaryColor, setSetPrimaryColor] = useState(() => settings?.primaryColor || "#2a9db5");
-  const [setSecondaryColor, setSetSecondaryColor] = useState(() => settings?.secondaryColor || "#5aab6b");
-  const [setDarkColor, setSetDarkColor] = useState(() => settings?.darkColor || "#1c2b35");
-  const [setPhone, setSetPhone] = useState(() => settings?.phone || "");
-  const [setEmergencyPhone, setSetEmergencyPhone] = useState(() => settings?.emergencyPhone || "");
-  const [setWhatsapp, setSetWhatsapp] = useState(() => settings?.whatsapp || "");
-  const [setAddress, setSetAddress] = useState(() => settings?.address || "");
-  const [setMapsUrl, setSetMapsUrl] = useState(() => settings?.mapsUrl || "");
-  const [setMapsEmbed, setSetMapsEmbed] = useState(() => settings?.mapsEmbedSrc || "");
-  const [setExpStat, setSetExpStat] = useState(() => settings?.stats?.experience || "");
-  const [setPatStat, setSetPatStat] = useState(() => settings?.stats?.patients || "");
-  const [setDocStat, setSetDocStat] = useState(() => settings?.stats?.doctors || "");
-  const [setSatStat, setSetSatStat] = useState(() => settings?.stats?.satisfaction || "");
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  // User form modal
-  const [showUserModal, setShowUserModal] = useState(false);
-  const [editingUser, setEditingUser] = useState(null);
-  const [usrUsername, setUsrUsername] = useState("");
-  const [usrName, setUsrName] = useState("");
-  const [usrRole, setUsrRole] = useState("receptionist");
-  const [usrPassword, setUsrPassword] = useState("");
-  const [usrDoctorId, setUsrDoctorId] = useState("");
-  const [usrAllowedTabs, setUsrAllowedTabs] = useState(["bookings"]);
-
-  // Specialties management state
-  const [showSpecModal, setShowSpecModal] = useState(false);
-  const [editingSpec, setEditingSpec] = useState(null);
-  const [specName, setSpecName] = useState("");
-  const [specDesc, setSpecDesc] = useState("");
-  const [specIcon, setSpecIcon] = useState("Stethoscope");
-  const [specFeatures, setSpecFeatures] = useState("");
-  const [localSpecialties, setLocalSpecialties] = useState(null);
-
-  // Medical Records tab state
-  const [selectedPatientBooking, setSelectedPatientBooking] = useState(null);
-  const [medicalSearchTerm, setMedicalSearchTerm] = useState("");
-  
-  // New Prescription Form State
-  const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
-  const [rxDiagnosis, setRxDiagnosis] = useState("");
-  const [rxMedicines, setRxMedicines] = useState([{ name: "", dosage: "", frequency: "", period: "" }]);
-  const [rxNotes, setRxNotes] = useState("");
-
-  // New Report Form State
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [repType, setRepType] = useState("lab"); // lab or radiology
-  const [repTitle, setRepTitle] = useState("");
-  const [repResultText, setRepResultText] = useState("");
-  const [repNotes, setRepNotes] = useState("");
-  const [repStatus, setRepStatus] = useState("ready");
-
-  const handleAddMedicineRow = () => {
-    setRxMedicines([...rxMedicines, { name: "", dosage: "", frequency: "", period: "" }]);
+  // ── Single form-data state (stays in sync with context) ──────────────────
+  const getAbout = (sections) => {
+    if (!sections) return { story: "", mission: "", vision: "" };
+    if (Array.isArray(sections)) return {
+      story:   sections.find(i => i.id === "story"   || i.key === "story")?.content   || "",
+      mission: sections.find(i => i.id === "mission" || i.key === "mission")?.content || "",
+      vision:  sections.find(i => i.id === "vision"  || i.key === "vision")?.content  || "",
+    };
+    return { story: sections.story || "", mission: sections.mission || "", vision: sections.vision || "" };
   };
 
-  const handleRemoveMedicineRow = (index) => {
-    setRxMedicines(rxMedicines.filter((_, idx) => idx !== index));
+  const buildFormData = (sl, ab, st) => {
+    const s = st || {};
+    const a = getAbout(ab);
+    return {
+      slideTitle1: sl?.[0]?.title    || "", slideSub1: sl?.[0]?.subtitle || "", slideImg1: sl?.[0]?.image || "",
+      slideTitle2: sl?.[1]?.title    || "", slideSub2: sl?.[1]?.subtitle || "", slideImg2: sl?.[1]?.image || "",
+      slideTitle3: sl?.[2]?.title    || "", slideSub3: sl?.[2]?.subtitle || "", slideImg3: sl?.[2]?.image || "",
+      aboutStory: a.story, aboutMission: a.mission, aboutVision: a.vision,
+      hospitalName:   s.hospitalName   || s.logoText   || "",
+      logoImage:      s.logo           || "",
+      primaryColor:   s.primaryColor   || "#2a9db5",
+      secondaryColor: s.secondaryColor || "#5aab6b",
+      darkColor:      s.darkColor      || "#1c2b35",
+      phone:          s.phone          || "",
+      emergencyPhone: s.emergencyPhone || "",
+      whatsapp:       s.whatsapp       || "",
+      address:        s.address        || "",
+      mapsUrl:        s.mapsUrl        || "",
+      mapsEmbed:      s.mapsEmbedSrc   || "",
+      expStat:        s.stats?.experience  || "",
+      patStat:        s.stats?.patients    || "",
+      docStat:        s.stats?.doctors     || "",
+      satStat:        s.stats?.satisfaction|| "",
+    };
   };
 
-  const handleMedicineChange = (index, field, value) => {
-    const updated = rxMedicines.map((med, idx) => 
-      idx === index ? { ...med, [field]: value } : med
-    );
-    setRxMedicines(updated);
-  };
+  const [formData, setFormData] = useState(() => buildFormData(slides, aboutSections, settings));
+  const fd = (key) => formData[key] ?? "";
+  const setFd = (key) => (e) => setFormData(prev => ({ ...prev, [key]: e.target.value ?? e }));
+  const setFdVal = (key, val) => setFormData(prev => ({ ...prev, [key]: val }));
 
-  const handlePrescriptionSubmit = (e) => {
-    e.preventDefault();
-    if (!selectedPatientBooking) return;
-    
-    // Filter out empty medicines
-    const cleanMedicines = rxMedicines.filter(m => m.name.trim() !== "");
-    if (cleanMedicines.length === 0) {
-      alert("يرجى إضافة دواء واحد على الأقل.");
-      return;
-    }
+  // Shorthand aliases (so we don't have to rename all JSX)
+  const slideTitle1 = fd("slideTitle1"); const setSlideTitle1 = setFd("slideTitle1");
+  const slideSub1   = fd("slideSub1");   const setSlideSub1   = setFd("slideSub1");
+  const slideImg1   = fd("slideImg1");   const setSlideImg1   = (v) => setFdVal("slideImg1", typeof v === "string" ? v : v.target?.value || "");
+  const slideTitle2 = fd("slideTitle2"); const setSlideTitle2 = setFd("slideTitle2");
+  const slideSub2   = fd("slideSub2");   const setSlideSub2   = setFd("slideSub2");
+  const slideImg2   = fd("slideImg2");   const setSlideImg2   = (v) => setFdVal("slideImg2", typeof v === "string" ? v : v.target?.value || "");
+  const slideTitle3 = fd("slideTitle3"); const setSlideTitle3 = setFd("slideTitle3");
+  const slideSub3   = fd("slideSub3");   const setSlideSub3   = setFd("slideSub3");
+  const slideImg3   = fd("slideImg3");   const setSlideImg3   = (v) => setFdVal("slideImg3", typeof v === "string" ? v : v.target?.value || "");
+  const aboutStory   = fd("aboutStory");   const setAboutStory   = setFd("aboutStory");
+  const aboutMission = fd("aboutMission"); const setAboutMission = setFd("aboutMission");
+  const aboutVision  = fd("aboutVision");  const setAboutVision  = setFd("aboutVision");
+  const setHospitalName = fd("hospitalName");  const setSetHospitalName = setFd("hospitalName");
+  const setLogoImage    = fd("logoImage");     const setSetLogoImage    = (v) => setFdVal("logoImage", v);
+  const setPrimaryColor   = fd("primaryColor");   const setSetPrimaryColor   = setFd("primaryColor");
+  const setSecondaryColor = fd("secondaryColor"); const setSetSecondaryColor = setFd("secondaryColor");
+  const setDarkColor      = fd("darkColor");      const setSetDarkColor      = setFd("darkColor");
+  const setPhone          = fd("phone");          const setSetPhone          = setFd("phone");
+  const setEmergencyPhone = fd("emergencyPhone"); const setSetEmergencyPhone = setFd("emergencyPhone");
+  const setWhatsapp       = fd("whatsapp");       const setSetWhatsapp       = setFd("whatsapp");
+  const setAddress        = fd("address");        const setSetAddress        = setFd("address");
+  const setMapsUrl        = fd("mapsUrl");        const setSetMapsUrl        = setFd("mapsUrl");
+  const setMapsEmbed      = fd("mapsEmbed");      const setSetMapsEmbed      = setFd("mapsEmbed");
+  const setExpStat = fd("expStat"); const setSetExpStat = setFd("expStat");
+  const setPatStat = fd("patStat"); const setSetPatStat = setFd("patStat");
+  const setDocStat = fd("docStat"); const setSetDocStat = setFd("docStat");
+  const setSatStat = fd("satStat"); const setSetSatStat = setFd("satStat");
 
-    const docName = currentUser.role === "doctor" ? currentUser.name : selectedPatientBooking.doctorName;
-    const docId = currentUser.role === "doctor" ? currentUser.doctorId : selectedPatientBooking.doctorId;
-
-    addPrescription({
-      bookingId: selectedPatientBooking.id,
-      patientName: selectedPatientBooking.patientName,
-      phone: selectedPatientBooking.phone,
-      doctorId: docId,
-      doctorName: docName,
-      diagnosis: rxDiagnosis,
-      medicines: cleanMedicines,
-      notes: rxNotes
-    });
-
-    alert("تم كتابة الروشتة وحفظها بنجاح في ملف المريض!");
-    setShowPrescriptionModal(false);
-    setRxDiagnosis("");
-    setRxMedicines([{ name: "", dosage: "", frequency: "", period: "" }]);
-    setRxNotes("");
-  };
-
-  const handleReportSubmit = (e) => {
-    e.preventDefault();
-    if (!selectedPatientBooking) return;
-
-    if (!repTitle.trim() || !repResultText.trim()) {
-      alert("يرجى تعبئة عنوان الفحص ونتائج التقرير.");
-      return;
-    }
-
-    const docName = currentUser.role === "doctor" ? currentUser.name : selectedPatientBooking.doctorName;
-    const docId = currentUser.role === "doctor" ? currentUser.doctorId : selectedPatientBooking.doctorId;
-
-    addReport({
-      bookingId: selectedPatientBooking.id,
-      patientName: selectedPatientBooking.patientName,
-      phone: selectedPatientBooking.phone,
-      doctorId: docId,
-      doctorName: docName,
-      type: repType,
-      title: repTitle,
-      resultText: repResultText,
-      notes: repNotes,
-      status: repStatus
-    });
-
-    alert("تم إضافة التقرير الطبي وحفظه بنجاح!");
-    setShowReportModal(false);
-    setRepTitle("");
-    setRepResultText("");
-    setRepNotes("");
-    setRepStatus("ready");
-  };
-
-  // Login handler
-  const handleLoginSubmit = (e) => {
-    e.preventDefault();
-    setLoginError("");
-    const result = login(usernameInput, passwordInput);
-    if (result.success) {
-      setUsernameInput("");
-      setPasswordInput("");
-      
-      // Auto-set the active subtab depending on user role
-      if (result.user.role === "doctor") {
-        setActiveSubTab("bookings");
-      } else if (result.user.role === "receptionist") {
-        setActiveSubTab("bookings");
-      } else {
-        setActiveSubTab("bookings");
-      }
-      
-      // Load current values in configuration editors
-      setTimeout(() => loadEditorStates(), 1000);
-    } else {
-      setLoginError(result.message);
-    }
-  };
-
-
-  const normalizeAboutSections = () => {
-    if (Array.isArray(aboutSections)) {
-      return {
-        story: aboutSections.find((item) => item.id === "story" || item.key === "story")?.content || "",
-        mission: aboutSections.find((item) => item.id === "mission" || item.key === "mission")?.content || "",
-        vision: aboutSections.find((item) => item.id === "vision" || item.key === "vision")?.content || ""
-      };
-    }
-    return aboutSections || {};
-  };
-
-  const loadEditorStates = React.useCallback(() => {
-    // Load slides values
-    if (slides && slides.length >= 3) {
-      setSlideTitle1(slides[0]?.title || ""); setSlideSub1(slides[0]?.subtitle || ""); setSlideImg1(slides[0]?.image || "");
-      setSlideTitle2(slides[1]?.title || ""); setSlideSub2(slides[1]?.subtitle || ""); setSlideImg2(slides[1]?.image || "");
-      setSlideTitle3(slides[2]?.title || ""); setSlideSub3(slides[2]?.subtitle || ""); setSlideImg3(slides[2]?.image || "");
-    }
-    // Load About
-    if (aboutSections) {
-      const about = Array.isArray(aboutSections) ? {
-        story: aboutSections.find((item) => item.id === "story" || item.key === "story")?.content || "",
-        mission: aboutSections.find((item) => item.id === "mission" || item.key === "mission")?.content || "",
-        vision: aboutSections.find((item) => item.id === "vision" || item.key === "vision")?.content || ""
-      } : aboutSections;
-      setAboutStory(about.story || "");
-      setAboutMission(about.mission || "");
-      setAboutVision(about.vision || "");
-    }
-    // Load Settings
-    const s = settings || {};
-    setSetHospitalName(s.hospitalName || s.hospitalNameAr || s.logoText || "");
-    setSetLogoImage(s.logo || "");
-    setSetPrimaryColor(s.primaryColor || s.primary_color || "#2a9db5");
-    setSetSecondaryColor(s.secondaryColor || s.secondary_color || "#5aab6b");
-    setSetDarkColor(s.darkColor || s.dark_color || "#1c2b35");
-    setSetPhone(s.phone || s.mainPhone || "");
-    setSetEmergencyPhone(s.emergencyPhone || s.emergency_phone || "");
-    setSetWhatsapp(s.whatsapp || s.whatsappNumber || "");
-    setSetAddress(s.address || "");
-    setSetMapsUrl(s.mapsUrl || s.googleMapsUrl || "");
-    setSetMapsEmbed(s.mapsEmbedSrc || s.mapsEmbed || "");
-    setSetExpStat(s.stats?.experience || s.experience || "");
-    setSetPatStat(s.stats?.patients || s.patients || "");
-    setSetDocStat(s.stats?.doctors || s.doctorsCount || "");
-    setSetSatStat(s.stats?.satisfaction || s.satisfaction || "");
-  }, [slides, aboutSections, settings]);
-
-  // Sync form fields whenever Supabase finishes loading
+  // Sync formData whenever Supabase data changes
   useEffect(() => {
     if (cloudLoading) return;
-    loadEditorStates();
-  }, [cloudLoading, loadEditorStates]);
-
-
+    setFormData(buildFormData(slides, aboutSections, settings));
+  }, [cloudLoading, slides, aboutSections, settings]);
 
 
 
