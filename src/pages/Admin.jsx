@@ -264,7 +264,7 @@ export default function Admin({ setCurrentTab }) {
       }
       
       // Load current values in configuration editors
-      loadEditorStates();
+      setTimeout(() => loadEditorStates(), 1000);
     } else {
       setLoginError(result.message);
     }
