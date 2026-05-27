@@ -34,7 +34,10 @@ export default function Admin({ setCurrentTab }) {
     addPrescription,
     deletePrescription,
     addReport,
-    deleteReport
+    deleteReport,
+    addSpecialty,
+    updateSpecialty,
+    deleteSpecialty
   } = useHospital();
 
   // Login Form State
@@ -486,54 +489,50 @@ export default function Admin({ setCurrentTab }) {
     setShowUserModal(false);
   };
 
-  // Specialties management - uses localStorage directly since context has readonly specialties
-  const getLocalSpecialties = () => {
-    if (localSpecialties) return localSpecialties;
-    const stored = localStorage.getItem("fhh_specialties_custom");
-    if (stored) return JSON.parse(stored);
-    return specialties; // fallback to context
-  };
-
-  const saveLocalSpecialties = (list) => {
-    setLocalSpecialties(list);
-    localStorage.setItem("fhh_specialties_custom", JSON.stringify(list));
-  };
+  // Specialties management - stored through HospitalContext/Supabase
+  const getLocalSpecialties = () => specialties;
 
   const openAddSpec = () => {
     setEditingSpec(null);
-    setSpecName(""); setSpecDesc(""); setSpecIcon("Stethoscope"); setSpecFeatures("");
+    setSpecName("");
+    setSpecDesc("");
+    setSpecIcon("Stethoscope");
+    setSpecFeatures("");
     setShowSpecModal(true);
   };
 
   const openEditSpec = (spec) => {
     setEditingSpec(spec);
-    setSpecName(spec.name); setSpecDesc(spec.description); setSpecIcon(spec.icon || "Stethoscope");
+    setSpecName(spec.name || "");
+    setSpecDesc(spec.description || "");
+    setSpecIcon(spec.icon || "Stethoscope");
     setSpecFeatures((spec.features || []).join("\n"));
     setShowSpecModal(true);
   };
 
   const handleSpecSubmit = (e) => {
     e.preventDefault();
-    const list = getLocalSpecialties();
     const payload = {
       name: specName,
       description: specDesc,
       icon: specIcon,
       features: specFeatures.split("\n").map(s => s.trim()).filter(Boolean)
     };
+
     if (editingSpec) {
-      saveLocalSpecialties(list.map(s => s.id === editingSpec.id ? { ...s, ...payload } : s));
+      updateSpecialty({ ...editingSpec, ...payload });
       alert("تم تعديل التخصص بنجاح!");
     } else {
-      saveLocalSpecialties([...list, { ...payload, id: `spec-${Date.now()}` }]);
+      addSpecialty(payload);
       alert("تم إضافة التخصص بنجاح!");
     }
+
     setShowSpecModal(false);
   };
 
   const deleteSpec = (id) => {
     if (!confirm("هل تريد حذف هذا التخصص؟")) return;
-    saveLocalSpecialties(getLocalSpecialties().filter(s => s.id !== id));
+    deleteSpecialty(id);
   };
 
   // Tab permission helper

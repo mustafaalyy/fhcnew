@@ -11,141 +11,266 @@ import {
   INITIAL_REPORTS
 } from "../utils/mockData";
 
-// ─── Supabase ────────────────────────────────────────────────────────────────
 const SUPABASE_URL = "https://zyecuavgoesyisxjkzxu.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5ZWN1YXZnb2VzeWlzeGprenh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwOTk1NjUsImV4cCI6MjA5MjY3NTU2NX0.xVrRrfnFmZOUdIzzQDJyVvE3qcMkxib8JJuXFMc5SfE";
-
-const sbFetch = async (path, options = {}) => {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...options,
-    headers: {
-      "apikey": SUPABASE_KEY,
-      "Authorization": `Bearer ${SUPABASE_KEY}`,
-      "Content-Type": "application/json",
-      "Prefer": options.prefer || "return=representation",
-      ...(options.headers || {})
-    }
-  });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(err);
-  }
-  const text = await res.text();
-  return text ? JSON.parse(text) : null;
-};
-// ─────────────────────────────────────────────────────────────────────────────
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6Inp5ZWN1YXZnb2VzeWlzeGprenh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwOTk1NjUsImV4cCI6MjA5MjY3NTU2NX0.xVrRrfnFmZOUdIzzQDJyVvE3qcMkxib8JJuXFMc5SfE";
 
 const HospitalContext = createContext();
 
-const safeParseStorage = (value, fallback) => {
+const DATA_KEYS = {
+  specialties: "app_specialties",
+  doctors: "app_doctors",
+  slides: "app_slides",
+  aboutSections: "app_about_sections",
+  settings: "app_settings",
+  users: "app_users",
+  prescriptions: "app_prescriptions",
+  reports: "app_reports"
+};
+
+const LABELS = {
+  [DATA_KEYS.specialties]: "بيانات التخصصات والعيادات",
+  [DATA_KEYS.doctors]: "بيانات الأطباء",
+  [DATA_KEYS.slides]: "سلايدر الصفحة الرئيسية",
+  [DATA_KEYS.aboutSections]: "محتوى من نحن",
+  [DATA_KEYS.settings]: "إعدادات الموقع",
+  [DATA_KEYS.users]: "مستخدمي لوحة التحكم",
+  [DATA_KEYS.prescriptions]: "روشتات المرضى",
+  [DATA_KEYS.reports]: "تقارير المرضى"
+};
+
+const safeParse = (value, fallback) => {
   try {
-    if (!value) return fallback;
-    const parsed = JSON.parse(value);
+    if (value === undefined || value === null || value === "") return fallback;
+    const parsed = typeof value === "string" ? JSON.parse(value) : value;
+
     if (Array.isArray(fallback)) {
       return Array.isArray(parsed) && parsed.length > 0 ? parsed : fallback;
     }
+
     if (fallback && typeof fallback === "object") {
       return parsed && typeof parsed === "object" && Object.keys(parsed).length > 0
-        ? parsed : fallback;
+        ? { ...fallback, ...parsed }
+        : fallback;
     }
+
     return parsed ?? fallback;
   } catch {
     return fallback;
   }
 };
 
+const localKey = (key) => `fhh_${key}`;
+
+const saveLocal = (key, value) => {
+  try {
+    localStorage.setItem(localKey(key), JSON.stringify(value));
+  } catch (error) {
+    console.warn("LocalStorage save failed:", key, error);
+  }
+};
+
+const loadLocal = (key, fallback) => {
+  try {
+    return safeParse(localStorage.getItem(localKey(key)), fallback);
+  } catch {
+    return fallback;
+  }
+};
+
+const sbFetch = async (path, options = {}) => {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: options.prefer || "return=representation",
+      ...(options.headers || {})
+    }
+  });
+
+  if (!res.ok) {
+    const message = await res.text();
+    throw new Error(message || `Supabase request failed: ${res.status}`);
+  }
+
+  const body = await res.text();
+  return body ? JSON.parse(body) : null;
+};
+
+const loadSiteValue = async (key, fallback) => {
+  const rows = await sbFetch(`site_content?key=eq.${encodeURIComponent(key)}&select=key,value,type,label,updated_at&limit=1`);
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+  return safeParse(rows[0]?.value, fallback);
+};
+
+const saveSiteValue = async (key, value) => {
+  const payload = {
+    key,
+    value: JSON.stringify(value),
+    type: "json",
+    label: LABELS[key] || key,
+    updated_at: new Date().toISOString()
+  };
+
+  const patched = await sbFetch(`site_content?key=eq.${encodeURIComponent(key)}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload)
+  });
+
+  if (Array.isArray(patched) && patched.length > 0) return patched[0];
+
+  const inserted = await sbFetch("site_content", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+
+  return Array.isArray(inserted) ? inserted[0] : inserted;
+};
+
+const loadTableRows = async (tableName) => {
+  try {
+    const rows = await sbFetch(`${tableName}?select=*`);
+    return Array.isArray(rows) && rows.length > 0 ? rows : null;
+  } catch {
+    return null;
+  }
+};
+
+const loadCloudCollection = async ({ key, fallback, tableName }) => {
+  try {
+    const fromSiteContent = await loadSiteValue(key, fallback);
+    if (fromSiteContent) {
+      saveLocal(key, fromSiteContent);
+      return fromSiteContent;
+    }
+
+    if (tableName) {
+      const tableRows = await loadTableRows(tableName);
+      if (tableRows) {
+        await saveSiteValue(key, tableRows).catch(() => {});
+        saveLocal(key, tableRows);
+        return tableRows;
+      }
+    }
+
+    await saveSiteValue(key, fallback).catch(() => {});
+    saveLocal(key, fallback);
+    return fallback;
+  } catch (error) {
+    console.warn("Cloud load fallback:", key, error);
+    return loadLocal(key, fallback);
+  }
+};
+
+const saveCloudCollection = async (key, value) => {
+  saveLocal(key, value);
+  try {
+    await saveSiteValue(key, value);
+  } catch (error) {
+    console.warn("Cloud save failed, saved locally only:", key, error);
+  }
+};
+
 export const useHospital = () => {
   const context = useContext(HospitalContext);
-  if (!context) throw new Error("useHospital must be used within a HospitalProvider");
+  if (!context) {
+    throw new Error("useHospital must be used within a HospitalProvider");
+  }
   return context;
 };
 
 export const HospitalProvider = ({ children }) => {
-  const [specialties] = useState(INITIAL_SPECIALTIES);
+  const [specialties, setSpecialties] = useState(INITIAL_SPECIALTIES);
   const [doctors, setDoctors] = useState(INITIAL_DOCTORS);
   const [slides, setSlides] = useState(INITIAL_SLIDES);
   const [aboutSections, setAboutSections] = useState(INITIAL_ABOUT_SECTIONS);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [bookings, setBookings] = useState(INITIAL_BOOKINGS);
-  const [bookingsLoading, setBookingsLoading] = useState(true);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
   const [users, setUsers] = useState(INITIAL_USERS);
   const [prescriptions, setPrescriptions] = useState(INITIAL_PRESCRIPTIONS);
   const [reports, setReports] = useState(INITIAL_REPORTS);
   const [currentUser, setCurrentUser] = useState(null);
+  const [cloudLoading, setCloudLoading] = useState(true);
+  const [cloudError, setCloudError] = useState("");
 
-  
-  const [storageReady, setStorageReady] = useState(false);
-// ── Load bookings from Supabase ──────────────────────────────────────────
   const fetchBookings = async () => {
+    setBookingsLoading(true);
     try {
-      setBookingsLoading(true);
       const data = await sbFetch("bookings?select=*&order=created_at.desc", {
         prefer: "return=representation"
       });
-      setBookings(data || []);
-    } catch (e) {
-      console.error("Supabase fetch error:", e);
-      // fallback to localStorage if Supabase fails
-      const local = localStorage.getItem("fhh_bookings");
-      setBookings(safeParseStorage(local, INITIAL_BOOKINGS));
+      const nextBookings = Array.isArray(data) ? data : INITIAL_BOOKINGS;
+      setBookings(nextBookings);
+      saveLocal("bookings", nextBookings);
+    } catch (error) {
+      console.warn("Supabase bookings fallback:", error);
+      setBookings(loadLocal("bookings", INITIAL_BOOKINGS));
     } finally {
       setBookingsLoading(false);
     }
   };
 
-  // ── Init from localStorage (non-booking data) ────────────────────────────
   useEffect(() => {
-    const localDoctors   = localStorage.getItem("fhh_doctors");
-    const localSlides    = localStorage.getItem("fhh_slides");
-    const localAbout     = localStorage.getItem("fhh_about");
-    const localSettings  = localStorage.getItem("fhh_settings");
-    const localUsers     = localStorage.getItem("fhh_users");
-    const localUser      = localStorage.getItem("fhh_current_user");
+    let mounted = true;
 
-    const nextDoctors = safeParseStorage(localDoctors, INITIAL_DOCTORS);
-    setDoctors(nextDoctors);
-    if (!localDoctors) localStorage.setItem("fhh_doctors", JSON.stringify(nextDoctors));
+    const hydrate = async () => {
+      setCloudLoading(true);
+      setCloudError("");
 
-    const nextSlides = safeParseStorage(localSlides, INITIAL_SLIDES);
-    setSlides(nextSlides);
-    if (!localSlides) localStorage.setItem("fhh_slides", JSON.stringify(nextSlides));
-
-    const nextAbout = safeParseStorage(localAbout, INITIAL_ABOUT_SECTIONS);
-    setAboutSections(nextAbout);
-    if (!localAbout) localStorage.setItem("fhh_about", JSON.stringify(nextAbout));
-
-    const nextSettings = safeParseStorage(localSettings, DEFAULT_SETTINGS);
-    setSettings(nextSettings);
-    if (!localSettings) localStorage.setItem("fhh_settings", JSON.stringify(nextSettings));
-
-    const nextUsers = safeParseStorage(localUsers, INITIAL_USERS);
-    setUsers(nextUsers);
-    if (!localUsers) localStorage.setItem("fhh_users", JSON.stringify(nextUsers));
-
-    const localPrescriptions = localStorage.getItem("fhh_prescriptions");
-    const localReports = localStorage.getItem("fhh_reports");
-    setPrescriptions(safeParseStorage(localPrescriptions, INITIAL_PRESCRIPTIONS));
-    setReports(safeParseStorage(localReports, INITIAL_REPORTS));
-
-    // Only restore session if user was genuinely logged in
-    if (localUser) {
       try {
-        const parsed = JSON.parse(localUser);
-        if (parsed && parsed.username && parsed.role) {
-          setCurrentUser(parsed);
-        } else {
-          localStorage.removeItem("fhh_current_user");
-        }
-      } catch {
-        localStorage.removeItem("fhh_current_user");
-      }
-    }
+        const [
+          nextSpecialties,
+          nextDoctors,
+          nextSlides,
+          nextAboutSections,
+          nextSettings,
+          nextUsers,
+          nextPrescriptions,
+          nextReports
+        ] = await Promise.all([
+          loadCloudCollection({ key: DATA_KEYS.specialties, fallback: INITIAL_SPECIALTIES }),
+          loadCloudCollection({ key: DATA_KEYS.doctors, fallback: INITIAL_DOCTORS, tableName: "doctors" }),
+          loadCloudCollection({ key: DATA_KEYS.slides, fallback: INITIAL_SLIDES }),
+          loadCloudCollection({ key: DATA_KEYS.aboutSections, fallback: INITIAL_ABOUT_SECTIONS }),
+          loadCloudCollection({ key: DATA_KEYS.settings, fallback: DEFAULT_SETTINGS }),
+          loadCloudCollection({ key: DATA_KEYS.users, fallback: INITIAL_USERS, tableName: "admin_users" }),
+          loadCloudCollection({ key: DATA_KEYS.prescriptions, fallback: INITIAL_PRESCRIPTIONS }),
+          loadCloudCollection({ key: DATA_KEYS.reports, fallback: INITIAL_REPORTS })
+        ]);
 
-    // Load bookings from Supabase
-    fetchBookings();
+        if (!mounted) return;
+
+        setSpecialties(nextSpecialties);
+        setDoctors(nextDoctors);
+        setSlides(nextSlides);
+        setAboutSections(nextAboutSections);
+        setSettings(nextSettings);
+        setUsers(nextUsers);
+        setPrescriptions(nextPrescriptions);
+        setReports(nextReports);
+
+        const localUser = safeParse(localStorage.getItem("fhh_current_user"), null);
+        if (localUser?.username && localUser?.role) setCurrentUser(localUser);
+
+        await fetchBookings();
+      } catch (error) {
+        console.error("Hospital cloud hydration failed:", error);
+        if (!mounted) return;
+        setCloudError("تعذر تحميل بعض البيانات من Supabase، تم استخدام النسخة المحلية مؤقتًا.");
+      } finally {
+        if (mounted) setCloudLoading(false);
+      }
+    };
+
+    hydrate();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  // ── Sync colors ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (settings.primaryColor && settings.secondaryColor && settings.darkColor) {
       document.documentElement.style.setProperty("--color-primary", settings.primaryColor);
@@ -154,16 +279,19 @@ export const HospitalProvider = ({ children }) => {
     }
   }, [settings]);
 
-  // ── Auth ─────────────────────────────────────────────────────────────────
   const login = (username, password) => {
     const foundUser = users.find(
-      (u) => u.username.toLowerCase() === username.toLowerCase() && u.password === password
+      (u) =>
+        String(u.username || "").trim().toLowerCase() === String(username || "").trim().toLowerCase() &&
+        String(u.password || "") === String(password || "")
     );
+
     if (foundUser) {
       setCurrentUser(foundUser);
       localStorage.setItem("fhh_current_user", JSON.stringify(foundUser));
       return { success: true, user: foundUser };
     }
+
     return { success: false, message: "اسم المستخدم أو كلمة المرور غير صحيحة" };
   };
 
@@ -172,156 +300,183 @@ export const HospitalProvider = ({ children }) => {
     localStorage.removeItem("fhh_current_user");
   };
 
-  // ── Booking Operations (Supabase) ────────────────────────────────────────
   const addBooking = async (newBooking) => {
     const payload = {
       ...newBooking,
-      id: `FHH-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: newBooking.id || `FHH-2026-${Math.floor(1000 + Math.random() * 9000)}`,
       created_at: new Date().toISOString(),
       status: newBooking.status || "pending"
     };
+
     try {
-      const [inserted] = await sbFetch("bookings", {
+      const inserted = await sbFetch("bookings", {
         method: "POST",
         body: JSON.stringify(payload)
       });
-      setBookings((prev) => [inserted, ...prev]);
-      return inserted;
-    } catch (e) {
-      console.error("addBooking error:", e);
-      // fallback: save locally
-      setBookings((prev) => [payload, ...prev]);
+      const saved = Array.isArray(inserted) && inserted[0] ? inserted[0] : payload;
+      const nextBookings = [saved, ...bookings];
+      setBookings(nextBookings);
+      saveLocal("bookings", nextBookings);
+      return saved;
+    } catch (error) {
+      console.warn("addBooking fallback:", error);
+      const nextBookings = [payload, ...bookings];
+      setBookings(nextBookings);
+      saveLocal("bookings", nextBookings);
       return payload;
     }
   };
 
   const updateBookingStatus = async (id, status) => {
+    const nextBookings = bookings.map((booking) => (booking.id === id ? { ...booking, status } : booking));
+    setBookings(nextBookings);
+    saveLocal("bookings", nextBookings);
+
     try {
-      await sbFetch(`bookings?id=eq.${id}`, {
+      await sbFetch(`bookings?id=eq.${encodeURIComponent(id)}`, {
         method: "PATCH",
         body: JSON.stringify({ status })
       });
-      setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status } : b)));
-    } catch (e) {
-      console.error("updateBookingStatus error:", e);
-      setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status } : b)));
+    } catch (error) {
+      console.warn("updateBookingStatus cloud save failed:", error);
     }
   };
 
   const deleteBooking = async (id) => {
+    const nextBookings = bookings.filter((booking) => booking.id !== id);
+    setBookings(nextBookings);
+    saveLocal("bookings", nextBookings);
+
     try {
-      await sbFetch(`bookings?id=eq.${id}`, {
+      await sbFetch(`bookings?id=eq.${encodeURIComponent(id)}`, {
         method: "DELETE",
         prefer: "return=minimal"
       });
-      setBookings((prev) => prev.filter((b) => b.id !== id));
-    } catch (e) {
-      console.error("deleteBooking error:", e);
-      setBookings((prev) => prev.filter((b) => b.id !== id));
+    } catch (error) {
+      console.warn("deleteBooking cloud save failed:", error);
     }
   };
 
-  // ── Doctor Operations ────────────────────────────────────────────────────
   const addDoctor = (doctor) => {
-    const newDoc = {
+    const nextDoctor = {
       ...doctor,
-      id: `dr-${doctor.name.replace(/\s+/g, "-").toLowerCase()}-${Math.floor(Math.random() * 1000)}`,
-      rating: 4.8,
-      reviewsCount: Math.floor(5 + Math.random() * 90)
+      id: doctor.id || `dr-${String(doctor.name || Date.now()).replace(/\s+/g, "-").toLowerCase()}-${Math.floor(Math.random() * 1000)}`,
+      rating: doctor.rating || 4.8,
+      reviewsCount: doctor.reviewsCount || Math.floor(5 + Math.random() * 90)
     };
-    const updated = [...doctors, newDoc];
-    setDoctors(updated);
-    localStorage.setItem("fhh_doctors", JSON.stringify(updated));
+    const nextDoctors = [...doctors, nextDoctor];
+    setDoctors(nextDoctors);
+    saveCloudCollection(DATA_KEYS.doctors, nextDoctors);
   };
 
-  const updateDoctor = (updatedDoc) => {
-    const updated = doctors.map((d) => (d.id === updatedDoc.id ? updatedDoc : d));
-    setDoctors(updated);
-    localStorage.setItem("fhh_doctors", JSON.stringify(updated));
+  const updateDoctor = (updatedDoctor) => {
+    const nextDoctors = doctors.map((doctor) => (doctor.id === updatedDoctor.id ? updatedDoctor : doctor));
+    setDoctors(nextDoctors);
+    saveCloudCollection(DATA_KEYS.doctors, nextDoctors);
   };
 
   const deleteDoctor = (id) => {
-    const updated = doctors.filter((d) => d.id !== id);
-    setDoctors(updated);
-    localStorage.setItem("fhh_doctors", JSON.stringify(updated));
+    const nextDoctors = doctors.filter((doctor) => doctor.id !== id);
+    setDoctors(nextDoctors);
+    saveCloudCollection(DATA_KEYS.doctors, nextDoctors);
   };
 
-  // ── Content Operations ───────────────────────────────────────────────────
-  const updateSlides = (newSlides) => {
-    setSlides(newSlides);
-    localStorage.setItem("fhh_slides", JSON.stringify(newSlides));
+  const updateSlides = (nextSlides) => {
+    setSlides(nextSlides);
+    saveCloudCollection(DATA_KEYS.slides, nextSlides);
   };
 
-  const updateAboutSections = (updatedAbout) => {
-    setAboutSections(updatedAbout);
-    localStorage.setItem("fhh_about", JSON.stringify(updatedAbout));
+  const updateAboutSections = (nextAboutSections) => {
+    setAboutSections(nextAboutSections);
+    saveCloudCollection(DATA_KEYS.aboutSections, nextAboutSections);
   };
 
-  const updateSettings = (newSettings) => {
-    setSettings(newSettings);
-    localStorage.setItem("fhh_settings", JSON.stringify(newSettings));
-    // Save logo separately if present
-    if (newSettings.logo) {
-      localStorage.setItem("fhh_logo", newSettings.logo);
-    }
+  const updateSettings = (nextSettings) => {
+    const mergedSettings = { ...settings, ...nextSettings };
+    setSettings(mergedSettings);
+    saveCloudCollection(DATA_KEYS.settings, mergedSettings);
   };
 
-  // ── User Operations ──────────────────────────────────────────────────────
   const addUser = (newUser) => {
-    const updated = [...users, { ...newUser, id: `user-${Math.floor(Math.random() * 1000)}` }];
-    setUsers(updated);
-    localStorage.setItem("fhh_users", JSON.stringify(updated));
+    const nextUser = { ...newUser, id: newUser.id || `user-${Date.now()}` };
+    const nextUsers = [...users, nextUser];
+    setUsers(nextUsers);
+    saveCloudCollection(DATA_KEYS.users, nextUsers);
   };
 
   const updateUser = (updatedUser) => {
-    const updated = users.map((u) => (u.id === updatedUser.id ? updatedUser : u));
-    setUsers(updated);
-    localStorage.setItem("fhh_users", JSON.stringify(updated));
+    const nextUsers = users.map((user) => (user.id === updatedUser.id ? updatedUser : user));
+    setUsers(nextUsers);
+    saveCloudCollection(DATA_KEYS.users, nextUsers);
+
+    if (currentUser?.id === updatedUser.id) {
+      setCurrentUser(updatedUser);
+      localStorage.setItem("fhh_current_user", JSON.stringify(updatedUser));
+    }
   };
 
   const deleteUser = (id) => {
-    const updated = users.filter((u) => u.id !== id);
-    setUsers(updated);
-    localStorage.setItem("fhh_users", JSON.stringify(updated));
+    const nextUsers = users.filter((user) => user.id !== id);
+    setUsers(nextUsers);
+    saveCloudCollection(DATA_KEYS.users, nextUsers);
   };
 
-  // ── Prescription Operations ──────────────────────────────────────────────
   const addPrescription = (prescription) => {
-    const newRx = {
+    const nextPrescription = {
       ...prescription,
-      id: `rx-${Math.floor(1000 + Math.random() * 9000)}`,
-      date: new Date().toISOString().split("T")[0]
+      id: prescription.id || `rx-${Math.floor(1000 + Math.random() * 9000)}`,
+      date: prescription.date || new Date().toISOString().split("T")[0]
     };
-    const updated = [newRx, ...prescriptions];
-    setPrescriptions(updated);
-    localStorage.setItem("fhh_prescriptions", JSON.stringify(updated));
-    return newRx;
+    const nextPrescriptions = [nextPrescription, ...prescriptions];
+    setPrescriptions(nextPrescriptions);
+    saveCloudCollection(DATA_KEYS.prescriptions, nextPrescriptions);
+    return nextPrescription;
   };
 
   const deletePrescription = (id) => {
-    const updated = prescriptions.filter((p) => p.id !== id);
-    setPrescriptions(updated);
-    localStorage.setItem("fhh_prescriptions", JSON.stringify(updated));
+    const nextPrescriptions = prescriptions.filter((prescription) => prescription.id !== id);
+    setPrescriptions(nextPrescriptions);
+    saveCloudCollection(DATA_KEYS.prescriptions, nextPrescriptions);
   };
 
-  // ── Report Operations ────────────────────────────────────────────────────
   const addReport = (report) => {
-    const newRep = {
+    const nextReport = {
       ...report,
-      id: `rep-${Math.floor(1000 + Math.random() * 9000)}`,
-      date: new Date().toISOString().split("T")[0],
+      id: report.id || `rep-${Math.floor(1000 + Math.random() * 9000)}`,
+      date: report.date || new Date().toISOString().split("T")[0],
       status: report.status || "ready"
     };
-    const updated = [newRep, ...reports];
-    setReports(updated);
-    localStorage.setItem("fhh_reports", JSON.stringify(updated));
-    return newRep;
+    const nextReports = [nextReport, ...reports];
+    setReports(nextReports);
+    saveCloudCollection(DATA_KEYS.reports, nextReports);
+    return nextReport;
   };
 
   const deleteReport = (id) => {
-    const updated = reports.filter((r) => r.id !== id);
-    setReports(updated);
-    localStorage.setItem("fhh_reports", JSON.stringify(updated));
+    const nextReports = reports.filter((report) => report.id !== id);
+    setReports(nextReports);
+    saveCloudCollection(DATA_KEYS.reports, nextReports);
+  };
+
+  const addSpecialty = (specialty) => {
+    const nextSpecialty = { ...specialty, id: specialty.id || `spec-${Date.now()}` };
+    const nextSpecialties = [...specialties, nextSpecialty];
+    setSpecialties(nextSpecialties);
+    saveCloudCollection(DATA_KEYS.specialties, nextSpecialties);
+  };
+
+  const updateSpecialty = (updatedSpecialty) => {
+    const nextSpecialties = specialties.map((specialty) =>
+      specialty.id === updatedSpecialty.id ? updatedSpecialty : specialty
+    );
+    setSpecialties(nextSpecialties);
+    saveCloudCollection(DATA_KEYS.specialties, nextSpecialties);
+  };
+
+  const deleteSpecialty = (id) => {
+    const nextSpecialties = specialties.filter((specialty) => specialty.id !== id);
+    setSpecialties(nextSpecialties);
+    saveCloudCollection(DATA_KEYS.specialties, nextSpecialties);
   };
 
   return (
@@ -338,6 +493,8 @@ export const HospitalProvider = ({ children }) => {
         prescriptions,
         reports,
         currentUser,
+        cloudLoading,
+        cloudError,
         login,
         logout,
         addBooking,
@@ -356,7 +513,10 @@ export const HospitalProvider = ({ children }) => {
         addPrescription,
         deletePrescription,
         addReport,
-        deleteReport
+        deleteReport,
+        addSpecialty,
+        updateSpecialty,
+        deleteSpecialty
       }}
     >
       {children}
