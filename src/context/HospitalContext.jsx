@@ -11,9 +11,6 @@ import {
   INITIAL_REPORTS
 } from "../utils/mockData";
 
-const SUPABASE_URL = "https://zyecuavgoesyisxjkzxu.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6Inp5ZWN1YXZnb2VzeWlzeGprenh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwOTk1NjUsImV4cCI6MjA5MjY3NTU2NX0.xVrRrfnFmZOUdIzzQDJyVvE3qcMkxib8JJuXFMc5SfE";
-
 const HospitalContext = createContext();
 
 const DATA_KEYS = {
@@ -59,117 +56,44 @@ const safeParse = (value, fallback) => {
   }
 };
 
-const localKey = (key) => `fhh_${key}`;
-
-const saveLocal = (key, value) => {
-  try {
-    localStorage.setItem(localKey(key), JSON.stringify(value));
-  } catch (error) {
-    console.warn("LocalStorage save failed:", key, error);
-  }
-};
-
-const loadLocal = (key, fallback) => {
-  try {
-    return safeParse(localStorage.getItem(localKey(key)), fallback);
-  } catch {
-    return fallback;
-  }
-};
-
-const sbFetch = async (path, options = {}) => {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...options,
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`,
-      "Content-Type": "application/json",
-      Prefer: options.prefer || "return=representation",
-      ...(options.headers || {})
-    }
+const apiRequest = async (payload) => {
+  const response = await fetch("/api/hospital-data", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
   });
 
-  if (!res.ok) {
-    const message = await res.text();
-    throw new Error(message || `Supabase request failed: ${res.status}`);
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok || data?.ok === false) {
+    throw new Error(data?.error || `API request failed: ${response.status}`);
   }
 
-  const body = await res.text();
-  return body ? JSON.parse(body) : null;
+  return data;
 };
 
-const loadSiteValue = async (key, fallback) => {
-  const rows = await sbFetch(`site_content?key=eq.${encodeURIComponent(key)}&select=key,value,type,label,updated_at&limit=1`);
-  if (!Array.isArray(rows) || rows.length === 0) return null;
-  return safeParse(rows[0]?.value, fallback);
-};
-
-const saveSiteValue = async (key, value) => {
-  const payload = {
-    key,
-    value: JSON.stringify(value),
-    type: "json",
-    label: LABELS[key] || key,
-    updated_at: new Date().toISOString()
+const getCollectionFallback = (key) => {
+  const fallbacks = {
+    [DATA_KEYS.specialties]: INITIAL_SPECIALTIES,
+    [DATA_KEYS.doctors]: INITIAL_DOCTORS,
+    [DATA_KEYS.slides]: INITIAL_SLIDES,
+    [DATA_KEYS.aboutSections]: INITIAL_ABOUT_SECTIONS,
+    [DATA_KEYS.settings]: DEFAULT_SETTINGS,
+    [DATA_KEYS.users]: INITIAL_USERS,
+    [DATA_KEYS.prescriptions]: INITIAL_PRESCRIPTIONS,
+    [DATA_KEYS.reports]: INITIAL_REPORTS
   };
 
-  const patched = await sbFetch(`site_content?key=eq.${encodeURIComponent(key)}`, {
-    method: "PATCH",
-    body: JSON.stringify(payload)
-  });
-
-  if (Array.isArray(patched) && patched.length > 0) return patched[0];
-
-  const inserted = await sbFetch("site_content", {
-    method: "POST",
-    body: JSON.stringify(payload)
-  });
-
-  return Array.isArray(inserted) ? inserted[0] : inserted;
-};
-
-const loadTableRows = async (tableName) => {
-  try {
-    const rows = await sbFetch(`${tableName}?select=*`);
-    return Array.isArray(rows) && rows.length > 0 ? rows : null;
-  } catch {
-    return null;
-  }
-};
-
-const loadCloudCollection = async ({ key, fallback, tableName }) => {
-  try {
-    const fromSiteContent = await loadSiteValue(key, fallback);
-    if (fromSiteContent) {
-      saveLocal(key, fromSiteContent);
-      return fromSiteContent;
-    }
-
-    if (tableName) {
-      const tableRows = await loadTableRows(tableName);
-      if (tableRows) {
-        await saveSiteValue(key, tableRows).catch(() => {});
-        saveLocal(key, tableRows);
-        return tableRows;
-      }
-    }
-
-    await saveSiteValue(key, fallback).catch(() => {});
-    saveLocal(key, fallback);
-    return fallback;
-  } catch (error) {
-    console.warn("Cloud load fallback:", key, error);
-    return loadLocal(key, fallback);
-  }
+  return fallbacks[key];
 };
 
 const saveCloudCollection = async (key, value) => {
-  saveLocal(key, value);
-  try {
-    await saveSiteValue(key, value);
-  } catch (error) {
-    console.warn("Cloud save failed, saved locally only:", key, error);
-  }
+  await apiRequest({
+    action: "saveCollection",
+    key,
+    label: LABELS[key] || key,
+    value
+  });
 };
 
 export const useHospital = () => {
@@ -198,15 +122,13 @@ export const HospitalProvider = ({ children }) => {
   const fetchBookings = async () => {
     setBookingsLoading(true);
     try {
-      const data = await sbFetch("bookings?select=*&order=created_at.desc", {
-        prefer: "return=representation"
-      });
-      const nextBookings = Array.isArray(data) ? data : INITIAL_BOOKINGS;
+      const data = await apiRequest({ action: "listBookings" });
+      const nextBookings = safeParse(data.bookings, INITIAL_BOOKINGS);
       setBookings(nextBookings);
-      saveLocal("bookings", nextBookings);
     } catch (error) {
-      console.warn("Supabase bookings fallback:", error);
-      setBookings(loadLocal("bookings", INITIAL_BOOKINGS));
+      console.error("Supabase bookings load failed:", error);
+      setCloudError("تعذر تحميل الحجوزات من Supabase. تأكد من متغيرات البيئة في Vercel.");
+      setBookings(INITIAL_BOOKINGS);
     } finally {
       setBookingsLoading(false);
     }
@@ -220,25 +142,18 @@ export const HospitalProvider = ({ children }) => {
       setCloudError("");
 
       try {
-        const [
-          nextSpecialties,
-          nextDoctors,
-          nextSlides,
-          nextAboutSections,
-          nextSettings,
-          nextUsers,
-          nextPrescriptions,
-          nextReports
-        ] = await Promise.all([
-          loadCloudCollection({ key: DATA_KEYS.specialties, fallback: INITIAL_SPECIALTIES }),
-          loadCloudCollection({ key: DATA_KEYS.doctors, fallback: INITIAL_DOCTORS, tableName: "doctors" }),
-          loadCloudCollection({ key: DATA_KEYS.slides, fallback: INITIAL_SLIDES }),
-          loadCloudCollection({ key: DATA_KEYS.aboutSections, fallback: INITIAL_ABOUT_SECTIONS }),
-          loadCloudCollection({ key: DATA_KEYS.settings, fallback: DEFAULT_SETTINGS }),
-          loadCloudCollection({ key: DATA_KEYS.users, fallback: INITIAL_USERS, tableName: "admin_users" }),
-          loadCloudCollection({ key: DATA_KEYS.prescriptions, fallback: INITIAL_PRESCRIPTIONS }),
-          loadCloudCollection({ key: DATA_KEYS.reports, fallback: INITIAL_REPORTS })
-        ]);
+        const data = await apiRequest({ action: "load" });
+        const collections = data.collections || {};
+
+        const nextSpecialties = safeParse(collections[DATA_KEYS.specialties], INITIAL_SPECIALTIES);
+        const nextDoctors = safeParse(collections[DATA_KEYS.doctors], INITIAL_DOCTORS);
+        const nextSlides = safeParse(collections[DATA_KEYS.slides], INITIAL_SLIDES);
+        const nextAboutSections = safeParse(collections[DATA_KEYS.aboutSections], INITIAL_ABOUT_SECTIONS);
+        const nextSettings = safeParse(collections[DATA_KEYS.settings], DEFAULT_SETTINGS);
+        const nextUsers = safeParse(collections[DATA_KEYS.users], INITIAL_USERS);
+        const nextPrescriptions = safeParse(collections[DATA_KEYS.prescriptions], INITIAL_PRESCRIPTIONS);
+        const nextReports = safeParse(collections[DATA_KEYS.reports], INITIAL_REPORTS);
+        const nextBookings = safeParse(data.bookings, INITIAL_BOOKINGS);
 
         if (!mounted) return;
 
@@ -250,17 +165,19 @@ export const HospitalProvider = ({ children }) => {
         setUsers(nextUsers);
         setPrescriptions(nextPrescriptions);
         setReports(nextReports);
+        setBookings(nextBookings);
 
         const localUser = safeParse(localStorage.getItem("fhh_current_user"), null);
         if (localUser?.username && localUser?.role) setCurrentUser(localUser);
-
-        await fetchBookings();
       } catch (error) {
-        console.error("Hospital cloud hydration failed:", error);
+        console.error("Hospital Supabase hydration failed:", error);
         if (!mounted) return;
-        setCloudError("تعذر تحميل بعض البيانات من Supabase، تم استخدام النسخة المحلية مؤقتًا.");
+        setCloudError("تعذر تحميل بيانات Supabase. تأكد من SUPABASE_URL و SUPABASE_SERVICE_ROLE_KEY في Vercel.");
       } finally {
-        if (mounted) setCloudLoading(false);
+        if (mounted) {
+          setCloudLoading(false);
+          setBookingsLoading(false);
+        }
       }
     };
 
@@ -308,53 +225,26 @@ export const HospitalProvider = ({ children }) => {
       status: newBooking.status || "pending"
     };
 
-    try {
-      const inserted = await sbFetch("bookings", {
-        method: "POST",
-        body: JSON.stringify(payload)
-      });
-      const saved = Array.isArray(inserted) && inserted[0] ? inserted[0] : payload;
-      const nextBookings = [saved, ...bookings];
-      setBookings(nextBookings);
-      saveLocal("bookings", nextBookings);
-      return saved;
-    } catch (error) {
-      console.warn("addBooking fallback:", error);
-      const nextBookings = [payload, ...bookings];
-      setBookings(nextBookings);
-      saveLocal("bookings", nextBookings);
-      return payload;
-    }
+    const data = await apiRequest({ action: "addBooking", booking: payload });
+    const saved = data.booking || payload;
+    const nextBookings = [saved, ...bookings];
+    setBookings(nextBookings);
+    return saved;
   };
 
   const updateBookingStatus = async (id, status) => {
-    const nextBookings = bookings.map((booking) => (booking.id === id ? { ...booking, status } : booking));
+    const data = await apiRequest({ action: "updateBookingStatus", id, status });
+    const saved = data.booking;
+    const nextBookings = bookings.map((booking) =>
+      booking.id === id ? { ...booking, ...(saved || {}), status } : booking
+    );
     setBookings(nextBookings);
-    saveLocal("bookings", nextBookings);
-
-    try {
-      await sbFetch(`bookings?id=eq.${encodeURIComponent(id)}`, {
-        method: "PATCH",
-        body: JSON.stringify({ status })
-      });
-    } catch (error) {
-      console.warn("updateBookingStatus cloud save failed:", error);
-    }
   };
 
   const deleteBooking = async (id) => {
+    await apiRequest({ action: "deleteBooking", id });
     const nextBookings = bookings.filter((booking) => booking.id !== id);
     setBookings(nextBookings);
-    saveLocal("bookings", nextBookings);
-
-    try {
-      await sbFetch(`bookings?id=eq.${encodeURIComponent(id)}`, {
-        method: "DELETE",
-        prefer: "return=minimal"
-      });
-    } catch (error) {
-      console.warn("deleteBooking cloud save failed:", error);
-    }
   };
 
   const addDoctor = (doctor) => {
