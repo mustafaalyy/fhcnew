@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Search, Calendar, Star, CheckCircle, Award } from "lucide-react";
+import { Search, Calendar, CheckCircle, Award, UserRound } from "lucide-react";
 
 // Hook for scroll-triggered fade-in
 function useFadeIn(threshold = 0.15) {
@@ -58,28 +58,7 @@ export default function Home({ setCurrentTab, setSelectedSpecialtyId, setSelecte
 
   // Find Dr. Mohamed Sedky
   const drSedky = doctors.find((d) => d.id === "dr-mohamed-sedky");
-
-  // Mock Testimonials
-  const testimonials = [
-    {
-      name: "أحمد عبد العزيز",
-      role: "مريض قلب سابق",
-      text: "تجربتي مع د. محمد صدقي كانت ممتازة. الخدمة بالمستشفى ممتازة ومستوى النظافة والتعقيم يضاهي المستشفيات العالمية. أشكر كل الطاقم الطبي على الرعاية.",
-      stars: 5
-    },
-    {
-      name: "سارة الجارحي",
-      role: "والدة الطفل عمر",
-      text: "عيادة الأطفال ممتازة جداً. دكتورة ياسمين صلاح صبورة ولطيفة جداً مع طفلي، والمستشفى منظم والانتظار لم يتعدى 10 دقائق. تجربة مريحة جداً.",
-      stars: 5
-    },
-    {
-      name: "محمود الكردي",
-      role: "مراجع عيادة العظام",
-      text: "أجريت عملية جراحية بالركبة مع دكتور أحمد حسن، والحمد لله التعافي كان أسرع مما توقعت بفضل العلاج الطبيعي والمتابعة الدقيقة. مستشفى راقي بكل ما تحمله الكلمة.",
-      stars: 5
-    }
-  ];
+  const homeDoctors = doctors.slice(0, 4);
 
   return (
     <div>
@@ -280,51 +259,147 @@ export default function Home({ setCurrentTab, setSelectedSpecialtyId, setSelecte
           </div>
         </section>
       )}
-
-      {/* Testimonials section */}
+      {/* Medical Team section */}
       <section className="section-padding" style={{ backgroundColor: "var(--color-light)" }} ref={testRef}>
         <div className="container">
           <div className="section-title" style={{ opacity: testVisible ? 1 : 0, transform: testVisible ? "translateY(0)" : "translateY(20px)", transition: "opacity 0.5s ease, transform 0.5s ease" }}>
-            <h2>ماذا يقول مرضانا عنا؟</h2>
-            <p>قصص نجاح ورسائل شكر من مرضى وثقوا برعاية مستشفى Family Health</p>
+            <h2>فريقنا الطبي</h2>
+            <p>تعرف على نخبة من أطباء Family Health Care واحجز موعدك مع الطبيب المناسب مباشرة.</p>
           </div>
 
-          <div className="grid-3">
-            {testimonials.map((test, idx) => (
+          <div className="grid-4">
+            {homeDoctors.map((doctor, idx) => (
               <div
-                key={idx}
+                key={doctor.id}
                 className="luxury-card"
                 style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  position: "relative",
+                  padding: "0",
+                  overflow: "hidden",
                   opacity: testVisible ? 1 : 0,
                   transform: testVisible ? "translateY(0)" : "translateY(30px)",
-                  transition: `opacity 0.5s ease ${idx * 0.15}s, transform 0.5s ease ${idx * 0.15}s`
+                  transition: `opacity 0.5s ease ${idx * 0.12}s, transform 0.5s ease ${idx * 0.12}s`
                 }}
               >
-                <div style={{ display: "flex", gap: "0.2rem", marginBottom: "1rem" }}>
-                  {[...Array(test.stars)].map((_, i) => (
-                    <Star key={i} size={16} fill="var(--color-gold)" color="var(--color-gold)" />
-                  ))}
+                <div style={{ height: "210px", backgroundColor: "var(--color-light)", overflow: "hidden" }}>
+                  {doctor.image ? (
+                    <img
+                      src={doctor.image}
+                      alt={doctor.name}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  ) : (
+                    <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-primary)" }}>
+                      <UserRound size={54} />
+                    </div>
+                  )}
                 </div>
-
-                <p style={{ fontSize: "0.95rem", fontStyle: "italic", color: "var(--color-text)", lineHeight: "1.7", marginBottom: "1.5rem" }}>
-                  "{test.text}"
-                </p>
-
-                <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "1rem" }}>
-                  <h4 style={{ fontSize: "1rem", fontWeight: "700", color: "var(--color-dark)" }}>{test.name}</h4>
-                  <span style={{ fontSize: "0.8rem", color: "var(--color-text-light)" }}>{test.role}</span>
+                <div style={{ padding: "1.25rem" }}>
+                  <h3 style={{ fontSize: "1.1rem", fontWeight: "800", color: "var(--color-dark)", marginBottom: "0.35rem" }}>
+                    {doctor.name}
+                  </h3>
+                  <p style={{ color: "var(--color-primary)", fontWeight: "700", fontSize: "0.9rem", marginBottom: "0.75rem" }}>
+                    {doctor.specialtyName || specialties.find((s) => s.id === doctor.specialtyId)?.name || "استشاري"}
+                  </p>
+                  <p style={{ color: "var(--color-text-light)", lineHeight: "1.7", fontSize: "0.9rem", minHeight: "48px" }}>
+                    {doctor.experience || "خبرة طبية متخصصة ورعاية إنسانية لكل أفراد الأسرة."}
+                  </p>
+                  <button
+                    onClick={() => handleDoctorBook(doctor)}
+                    className="btn btn-primary"
+                    style={{ width: "100%", marginTop: "1rem", padding: "0.75rem" }}
+                  >
+                    <Calendar size={16} />
+                    احجز مع الطبيب
+                  </button>
                 </div>
               </div>
             ))}
           </div>
+
+          <div style={{ textAlign: "center", marginTop: "2.5rem" }}>
+            <button onClick={() => setCurrentTab("doctors")} className="btn btn-outline">
+              عرض كل الأطباء
+            </button>
+          </div>
         </div>
       </section>
 
-      {/* CTA section */}
+      {/* Homepage Booking section */}
+      <section className="section-padding" style={{ backgroundColor: "var(--color-white)", borderTop: "1px solid var(--color-border)", borderBottom: "1px solid var(--color-border)" }}>
+        <div className="container">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem", alignItems: "center" }} className="home-booking-grid">
+            <div>
+              <span style={{ color: "var(--color-primary)", fontWeight: "800", display: "inline-block", marginBottom: "0.6rem" }}>
+                الحجز المباشر
+              </span>
+              <h2 style={{ fontSize: "2.3rem", color: "var(--color-dark)", fontWeight: "800", marginBottom: "1rem" }}>
+                احجز موعدك الطبي من الصفحة الرئيسية
+              </h2>
+              <p style={{ color: "var(--color-text)", lineHeight: "1.9", fontSize: "1.05rem", marginBottom: "1.5rem" }}>
+                اختر التخصص أو الطبيب وسيتم تحويلك لنموذج الحجز الكامل لتأكيد البيانات والموعد.
+              </p>
+              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+                <button onClick={() => setCurrentTab("booking")} className="btn btn-primary">
+                  <Calendar size={18} />
+                  افتح نموذج الحجز
+                </button>
+                <button onClick={() => setCurrentTab("doctors")} className="btn btn-outline">
+                  اختر طبيبك
+                </button>
+              </div>
+            </div>
+
+            <div className="luxury-card" style={{ backgroundColor: "var(--color-light)" }}>
+              <h3 style={{ fontSize: "1.35rem", fontWeight: "800", color: "var(--color-dark)", marginBottom: "1rem" }}>
+                حجز سريع
+              </h3>
+              <div style={{ display: "grid", gap: "1rem" }}>
+                <select
+                  className="form-input"
+                  value={searchSpecialty}
+                  onChange={(e) => setSearchSpecialty(e.target.value)}
+                >
+                  <option value="">اختر التخصص</option>
+                  {specialties.map((spec) => (
+                    <option key={spec.id} value={spec.id}>{spec.name}</option>
+                  ))}
+                </select>
+
+                <select
+                  className="form-input"
+                  value={selectedDoctorId}
+                  onChange={(e) => {
+                    const doctor = doctors.find((doc) => doc.id === e.target.value);
+                    setSelectedDoctorId(e.target.value);
+                    if (doctor) setSelectedSpecialtyId(doctor.specialtyId);
+                  }}
+                >
+                  <option value="">اختر الطبيب</option>
+                  {doctors
+                    .filter((doctor) => !searchSpecialty || doctor.specialtyId === searchSpecialty)
+                    .map((doctor) => (
+                      <option key={doctor.id} value={doctor.id}>{doctor.name}</option>
+                    ))}
+                </select>
+
+                <button
+                  onClick={() => {
+                    if (searchSpecialty) setSelectedSpecialtyId(searchSpecialty);
+                    setCurrentTab("booking");
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="btn btn-primary"
+                  style={{ width: "100%" }}
+                >
+                  تأكيد وفتح الحجز
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA section */
       <section 
         className="section-padding animate-fade"
         style={{
@@ -365,7 +440,8 @@ export default function Home({ setCurrentTab, setSelectedSpecialtyId, setSelecte
 
       <style>{`
         @media (max-width: 992px) {
-          .doctor-sedky-grid {
+          .doctor-sedky-grid,
+          .home-booking-grid {
             grid-template-columns: 1fr !important;
             gap: 2.5rem !important;
           }

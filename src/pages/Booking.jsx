@@ -590,20 +590,6 @@ export default function Booking({ selectedSpecialtyId, setSelectedSpecialtyId, s
                 </li>
 
               </ul>
-
-              <div 
-                style={{ 
-                  marginTop: "2rem", 
-                  borderTop: "1px solid rgba(255,255,255,0.1)", 
-                  paddingTop: "1.5rem", 
-                  display: "flex", 
-                  justifyContent: "space-between", 
-                  alignItems: "center" 
-                }}
-              >
-                <span style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.6)" }}>رسوم الكشف التقديرية</span>
-                <span style={{ fontSize: "1.25rem", fontWeight: "bold", color: "var(--color-primary)" }}>350 ج.م</span>
-              </div>
             </div>
 
           </div>
@@ -682,10 +668,6 @@ export default function Booking({ selectedSpecialtyId, setSelectedSpecialtyId, s
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ color: "var(--color-text-light)" }}>الوقت المحدد:</span>
                   <span style={{ fontWeight: "600", color: "var(--color-dark)" }}>{confirmedBooking?.time}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid var(--color-border)", paddingTop: "1rem", marginTop: "0.5rem" }}>
-                  <span style={{ color: "var(--color-text-light)", fontWeight: "bold" }}>رسوم كشف العيادة:</span>
-                  <span style={{ fontWeight: "bold", color: "var(--color-primary)", fontSize: "1.1rem" }}>350 جنيه مصري</span>
                 </div>
               </div>
             </div>

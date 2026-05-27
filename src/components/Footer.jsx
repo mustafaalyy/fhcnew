@@ -1,5 +1,5 @@
 import React from "react";
-import { Phone, MapPin, Send, MessageSquare, Clock, Shield } from "lucide-react";
+import { Phone, MapPin, Send, MessageSquare, Clock, Shield, Facebook, Instagram } from "lucide-react";
 import { useHospital } from "../context/HospitalContext";
 
 export default function Footer({ setCurrentTab }) {
@@ -12,6 +12,16 @@ export default function Footer({ setCurrentTab }) {
 
   const getCleanPhone = (phoneStr) => {
     return phoneStr ? phoneStr.replace(/[^\d+]/g, "") : "";
+  };
+
+  const getMapsLink = () => {
+    if (settings.mapsUrl) return settings.mapsUrl;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address || "")}`;
+  };
+
+  const getWhatsappLink = () => {
+    const clean = getCleanPhone(settings.whatsapp || settings.phone);
+    return clean ? `https://wa.me/${clean.replace("+", "")}` : "#";
   };
 
   return (
@@ -107,32 +117,66 @@ export default function Footer({ setCurrentTab }) {
             <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "1rem", fontSize: "0.9rem" }}>
               <li style={{ display: "flex", gap: "0.75rem", alignItems: "flex-start" }}>
                 <MapPin size={18} style={{ color: "var(--color-primary)", flexShrink: 0, marginTop: "0.2rem" }} />
-                <span>{settings.address}</span>
+                <a
+                  href={getMapsLink()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "inherit", lineHeight: "1.7", textDecoration: "none" }}
+                  title="افتح الموقع على Google Maps"
+                >
+                  {settings.address || "موقع المستشفى على الخريطة"}
+                </a>
               </li>
               <li style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
                 <Phone size={18} style={{ color: "var(--color-secondary)" }} />
+                <span style={{ fontWeight: "700", color: "#fff" }}>للاستعلامات:</span>
                 <a href={`tel:${getCleanPhone(settings.phone)}`} style={{ direction: "ltr" }}>
                   {settings.phone}
                 </a>
               </li>
               <li style={{ display: "flex", gap: "0.75rem", alignItems: "center", color: "#f87171", fontWeight: "bold" }}>
                 <Phone size={18} />
+                <span>الطوارئ:</span>
                 <a href={`tel:${settings.emergencyPhone}`} style={{ direction: "ltr" }}>
                   {settings.emergencyPhone}
                 </a>
               </li>
               <li style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
                 <MessageSquare size={18} style={{ color: "#25D366" }} />
-                <a 
-                  href={`https://wa.me/${getCleanPhone(settings.whatsapp)}`} 
-                  target="_blank" 
+                <a
+                  href={getWhatsappLink()}
+                  target="_blank"
                   rel="noopener noreferrer"
-                  style={{ color: "#25D366", fontWeight: "600" }}
+                  style={{ color: "#25D366", fontWeight: "700", direction: "ltr" }}
                 >
-                  راسلنا على واتساب
+                  واتساب: {settings.whatsapp || settings.phone}
                 </a>
               </li>
             </ul>
+
+            <div style={{ marginTop: "1.5rem" }}>
+              <p style={{ color: "#fff", fontWeight: "700", marginBottom: "0.75rem" }}>تابعنا على</p>
+              <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+                <a
+                  href={settings.facebook || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Facebook"
+                  style={{ width: "38px", height: "38px", borderRadius: "50%", backgroundColor: "rgba(255,255,255,0.08)", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                >
+                  <Facebook size={19} />
+                </a>
+                <a
+                  href={settings.instagram || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Instagram"
+                  style={{ width: "38px", height: "38px", borderRadius: "50%", backgroundColor: "rgba(255,255,255,0.08)", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                >
+                  <Instagram size={19} />
+                </a>
+              </div>
+            </div>
           </div>
 
           {/* Maps Embed */}

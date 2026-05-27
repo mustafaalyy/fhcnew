@@ -29,7 +29,8 @@ export default function Header({ currentTab, setCurrentTab }) {
     { id: "doctors", name: "الأطباء" },
     { id: "portal", name: "بوابة المريض" },
     { id: "about", name: "عن المستشفى" },
-    { id: "contact", name: "تواصل معنا" }
+    { id: "contact", name: "تواصل معنا" },
+    { id: "admin", name: "دخول الإدارة" }
   ];
 
   const handleNavClick = (tabId) => {
@@ -46,76 +47,29 @@ export default function Header({ currentTab, setCurrentTab }) {
 
   return (
     <header style={{ width: "100%", zIndex: 100, position: "sticky", top: 0, boxShadow: "var(--shadow-md)" }}>
-      {/* Top Header Bar */}
-      <div
-        style={{
-          backgroundColor: "var(--color-dark)",
-          color: "rgba(255, 255, 255, 0.85)",
-          padding: "0.5rem 0",
-          fontSize: "0.85rem",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.08)"
-        }}
-      >
-        <div className="container" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "1.5rem", flexWrap: "wrap" }}>
-            <span style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-              <MapPin size={14} style={{ color: "var(--color-primary)" }} />
-              {settings.address || "مدينة 6 أكتوبر، الجيزة"}
-            </span>
-            <span style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-              <Phone size={14} style={{ color: "var(--color-secondary)" }} />
-              <span>الاستعلامات: {settings.phone}</span>
-            </span>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
-            <span style={{ display: "flex", alignItems: "center", gap: "0.4rem", color: "#f87171", fontWeight: "bold" }}>
-              <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#ef4444", animation: "pulse-subtle 1.5s infinite" }}></span>
-              طوارئ 24/7: {settings.emergencyPhone}
-            </span>
-            
-            {currentUser ? (
-              <div style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
-                <span 
-                  onClick={() => handleNavClick("admin")}
-                  style={{ display: "flex", alignItems: "center", gap: "0.3rem", color: "var(--color-primary)", cursor: "pointer", fontWeight: "600" }}
-                >
-                  <Shield size={14} />
-                  <span>لوحة التحكم ({currentUser.role === 'superadmin' ? 'مدير' : currentUser.role === 'receptionist' ? 'استقبال' : 'طبيب'})</span>
-                </span>
-                <button 
-                  onClick={handleLogout}
-                  style={{ display: "flex", alignItems: "center", gap: "0.3rem", color: "#f87171", border: "none", background: "none", fontSize: "0.85rem" }}
-                >
-                  <LogOut size={14} />
-                  <span>خروج</span>
-                </button>
-              </div>
-            ) : (
-              /* Secret: no visible admin link. Logo click x5 to open */
-              <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.3)" }}>
-                {logoClicks > 0 && logoClicks < 5 ? `${5 - logoClicks}...` : ""}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
       {/* Main Navbar */}
-      <nav style={{ backgroundColor: "var(--color-white)", padding: "1rem 0" }}>
+      <nav style={{ backgroundColor: "var(--color-white)", padding: "0.85rem 0" }}>
         <div className="container" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           
           {/* Logo */}
           <div 
             onClick={() => { handleNavClick("home"); handleLogoSecretClick(); }}
-            style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}
+            style={{ display: "flex", alignItems: "center", gap: "0.85rem", cursor: "pointer" }}
           >
             <img
               src={settings.logo || localStorage.getItem("fhh_logo") || "/logo.png"}
               alt={settings.hospitalName || "Family Health Care"}
-              style={{ height: "75px", width: "auto", objectFit: "contain" }}
+              style={{ height: "82px", width: "auto", objectFit: "contain" }}
               onError={(e) => { e.target.style.display = "none"; }}
             />
+            <div style={{ lineHeight: 1.25 }}>
+              <div style={{ fontWeight: "800", fontSize: "1.15rem", color: "var(--color-dark)" }}>
+                {settings.hospitalName || "Family Health Care"}
+              </div>
+              <div style={{ fontSize: "0.8rem", color: "var(--color-text-light)", fontWeight: "600" }}>
+                {settings.tagline || "رعاية طبية متكاملة للأسرة"}
+              </div>
+            </div>
           </div>
 
           {/* Desktop Navigation Links */}
