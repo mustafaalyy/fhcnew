@@ -26,6 +26,7 @@ function MainApp() {
         return (
           <Home
             setCurrentTab={setCurrentTab}
+            selectedDoctorId={selectedDoctorId}
             setSelectedSpecialtyId={setSelectedSpecialtyId}
             setSelectedDoctorId={setSelectedDoctorId}
           />
@@ -68,6 +69,7 @@ function MainApp() {
         return (
           <Home
             setCurrentTab={setCurrentTab}
+            selectedDoctorId={selectedDoctorId}
             setSelectedSpecialtyId={setSelectedSpecialtyId}
             setSelectedDoctorId={setSelectedDoctorId}
           />

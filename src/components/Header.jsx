@@ -29,8 +29,7 @@ export default function Header({ currentTab, setCurrentTab }) {
     { id: "doctors", name: "الأطباء" },
     { id: "portal", name: "بوابة المريض" },
     { id: "about", name: "عن المستشفى" },
-    { id: "contact", name: "تواصل معنا" },
-    { id: "admin", name: "دخول الإدارة" }
+    { id: "contact", name: "تواصل معنا" }
   ];
 
   const handleNavClick = (tabId) => {

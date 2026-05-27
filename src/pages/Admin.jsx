@@ -1448,7 +1448,6 @@ export default function Admin({ setCurrentTab }) {
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1rem" }}>
                 {getLocalSpecialties().map((spec) => {
-                  const IconComp = require ? null : null; // just use name
                   return (
                     <div key={spec.id} className="luxury-card" style={{ padding: "1.25rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>

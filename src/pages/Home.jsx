@@ -20,7 +20,7 @@ import Slideshow from "../components/Slideshow";
 import StatsBar from "../components/StatsBar";
 import ServiceCard from "../components/ServiceCard";
 
-export default function Home({ setCurrentTab, setSelectedSpecialtyId, setSelectedDoctorId }) {
+export default function Home({ setCurrentTab, selectedDoctorId, setSelectedSpecialtyId, setSelectedDoctorId }) {
   const { specialties, doctors, settings } = useHospital();
   
   // Search state
