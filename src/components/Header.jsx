@@ -113,7 +113,7 @@ export default function Header({ currentTab, setCurrentTab }) {
             <img
               src={settings.logo || localStorage.getItem("fhh_logo") || "/logo.png"}
               alt={settings.hospitalName || "Family Health Care"}
-              style={{ height: "52px", width: "auto", objectFit: "contain" }}
+              style={{ height: "75px", width: "auto", objectFit: "contain" }}
               onError={(e) => { e.target.style.display = "none"; }}
             />
           </div>
