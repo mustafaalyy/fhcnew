@@ -229,6 +229,12 @@ export const HospitalProvider = ({ children }) => {
       setCloudLoading(true);
       setCloudError("");
 
+      // Load current user FIRST before any async calls
+      const localUser = safeParse(localStorage.getItem("fhh_current_user"), null);
+      if (localUser?.username && localUser?.role) {
+        if (mounted) setCurrentUser(localUser);
+      }
+
       try {
         const [
           nextSpecialties,
@@ -260,9 +266,6 @@ export const HospitalProvider = ({ children }) => {
         setUsers(nextUsers);
         setPrescriptions(nextPrescriptions);
         setReports(nextReports);
-
-        const localUser = safeParse(localStorage.getItem("fhh_current_user"), null);
-        if (localUser?.username && localUser?.role) setCurrentUser(localUser);
 
         await fetchBookings();
       } catch (error) {
