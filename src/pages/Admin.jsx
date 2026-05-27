@@ -68,37 +68,65 @@ export default function Admin({ setCurrentTab }) {
   const [docHours, setDocHours] = useState("");
 
   // Slide form state
-  const [slideTitle1, setSlideTitle1] = useState("");
-  const [slideSub1, setSlideSub1] = useState("");
-  const [slideImg1, setSlideImg1] = useState("");
-  const [slideTitle2, setSlideTitle2] = useState("");
-  const [slideSub2, setSlideSub2] = useState("");
-  const [slideImg2, setSlideImg2] = useState("");
-  const [slideTitle3, setSlideTitle3] = useState("");
-  const [slideSub3, setSlideSub3] = useState("");
-  const [slideImg3, setSlideImg3] = useState("");
+  const [slideTitle1, setSlideTitle1] = useState(() => slides?.[0]?.title || "");
+  const [slideSub1, setSlideSub1] = useState(() => slides?.[0]?.subtitle || "");
+  const [slideImg1, setSlideImg1] = useState(() => slides?.[0]?.image || "");
+  const [slideTitle2, setSlideTitle2] = useState(() => slides?.[1]?.title || "");
+  const [slideSub2, setSlideSub2] = useState(() => slides?.[1]?.subtitle || "");
+  const [slideImg2, setSlideImg2] = useState(() => slides?.[1]?.image || "");
+  const [slideTitle3, setSlideTitle3] = useState(() => slides?.[2]?.title || "");
+  const [slideSub3, setSlideSub3] = useState(() => slides?.[2]?.subtitle || "");
+  const [slideImg3, setSlideImg3] = useState(() => slides?.[2]?.image || "");
 
   // About forms state
-  const [aboutStory, setAboutStory] = useState("");
-  const [aboutMission, setAboutMission] = useState("");
-  const [aboutVision, setAboutVision] = useState("");
+  const [aboutStory, setAboutStory] = useState(() => { if (!aboutSections) return ""; if (Array.isArray(aboutSections)) return aboutSections.find(i => i.id === "story" || i.key === "story")?.content || ""; return aboutSections.story || ""; });
+  const [aboutMission, setAboutMission] = useState(() => { if (!aboutSections) return ""; if (Array.isArray(aboutSections)) return aboutSections.find(i => i.id === "mission" || i.key === "mission")?.content || ""; return aboutSections.mission || ""; });
+  const [aboutVision, setAboutVision] = useState(() => { if (!aboutSections) return ""; if (Array.isArray(aboutSections)) return aboutSections.find(i => i.id === "vision" || i.key === "vision")?.content || ""; return aboutSections.vision || ""; });
 
   // Settings form state
-  const [setHospitalName, setSetHospitalName] = useState("");
-  const [setLogoImage, setSetLogoImage] = useState("");
-  const [setPrimaryColor, setSetPrimaryColor] = useState("");
-  const [setSecondaryColor, setSetSecondaryColor] = useState("");
-  const [setDarkColor, setSetDarkColor] = useState("");
-  const [setPhone, setSetPhone] = useState("");
-  const [setEmergencyPhone, setSetEmergencyPhone] = useState("");
-  const [setWhatsapp, setSetWhatsapp] = useState("");
-  const [setAddress, setSetAddress] = useState("");
-  const [setMapsUrl, setSetMapsUrl] = useState("");
-  const [setMapsEmbed, setSetMapsEmbed] = useState("");
-  const [setExpStat, setSetExpStat] = useState("");
-  const [setPatStat, setSetPatStat] = useState("");
-  const [setDocStat, setSetDocStat] = useState("");
-  const [setSatStat, setSetSatStat] = useState("");
+  const [setHospitalName, setSetHospitalName] = useState(() => settings?.hospitalName || settings?.logoText || "");
+  const [setLogoImage, setSetLogoImage] = useState(() => settings?.logo || "");
+  const [setPrimaryColor, setSetPrimaryColor] = useState(() => settings?.primaryColor || "#2a9db5");
+  const [setSecondaryColor, setSetSecondaryColor] = useState(() => settings?.secondaryColor || "#5aab6b");
+  const [setDarkColor, setSetDarkColor] = useState(() => settings?.darkColor || "#1c2b35");
+  const [setPhone, setSetPhone] = useState(() => settings?.phone || "");
+  const [setEmergencyPhone, setSetEmergencyPhone] = useState(() => settings?.emergencyPhone || "");
+  const [setWhatsapp, setSetWhatsapp] = useState(() => settings?.whatsapp || "");
+  const [setAddress, setSetAddress] = useState(() => settings?.address || "");
+  const [setMapsUrl, setSetMapsUrl] = useState(() => settings?.mapsUrl || "");
+  const [setMapsEmbed, setSetMapsEmbed] = useState(() => settings?.mapsEmbedSrc || "");
+  const [setExpStat, setSetExpStat] = useState(() => settings?.stats?.experience || "");
+  const [setPatStat, setSetPatStat] = useState(() => settings?.stats?.patients || "");
+  const [setDocStat, setSetDocStat] = useState(() => settings?.stats?.doctors || "");
+  const [setSatStat, setSetSatStat] = useState(() => settings?.stats?.satisfaction || "");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   // User form modal
   const [showUserModal, setShowUserModal] = useState(false);
@@ -291,13 +319,16 @@ export default function Admin({ setCurrentTab }) {
     setSetSatStat(s.stats?.satisfaction || s.satisfaction || "");
   }, [slides, aboutSections, settings]);
 
-  // Sync admin form fields whenever Supabase/context data finishes loading.
-useEffect(() => {
-  if (!currentUser) return;
-  if (cloudLoading) return;
-  if (!settings?.primaryColor && !settings?.phone) return;
-  loadEditorStates();
-}, [currentUser, cloudLoading, loadEditorStates]);
+  // Sync form fields whenever Supabase finishes loading
+  useEffect(() => {
+    if (cloudLoading) return;
+    loadEditorStates();
+  }, [cloudLoading, loadEditorStates]);
+
+
+
+
+
   // CSV Export function
   const handleCSVExport = () => {
     const headers = ["رقم الحجز", "اسم المريض", "رقم الهاتف", "العمر", "التخصص", "الطبيب", "التاريخ", "التوقيت", "الحالة", "تاريخ التسجيل"];
