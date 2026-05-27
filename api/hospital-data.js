@@ -1,248 +1,115 @@
-const DATA_KEYS = {
-  specialties: "app_specialties",
-  doctors: "app_doctors",
-  slides: "app_slides",
-  aboutSections: "app_about_sections",
-  settings: "app_settings",
-  users: "app_users",
-  prescriptions: "app_prescriptions",
-  reports: "app_reports"
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+const TABLES = {
+  doctors: "doctors",
+  slides: "slides",
+  aboutSections: "about_sections",
+  settings: "site_settings",
+  bookings: "bookings",
+  users: "admin_users",
+  prescriptions: "prescriptions",
+  reports: "reports"
 };
 
-const LABELS = {
-  [DATA_KEYS.specialties]: "بيانات التخصصات والعيادات",
-  [DATA_KEYS.doctors]: "بيانات الأطباء",
-  [DATA_KEYS.slides]: "سلايدر الصفحة الرئيسية",
-  [DATA_KEYS.aboutSections]: "محتوى من نحن",
-  [DATA_KEYS.settings]: "إعدادات الموقع",
-  [DATA_KEYS.users]: "مستخدمي لوحة التحكم",
-  [DATA_KEYS.prescriptions]: "روشتات المرضى",
-  [DATA_KEYS.reports]: "تقارير المرضى"
+const tableColumns = {
+  doctors: ["id", "name", "specialtyId", "specialty", "title", "experience", "image", "phone", "available", "rating", "bio", "schedule"],
+  slides: ["id", "title", "subtitle", "image", "buttonText", "buttonLink", "active"],
+  aboutSections: ["id", "title", "content", "image", "active"],
+  site_settings: ["id", "hospitalName", "hospitalNameAr", "logo", "phone", "whatsapp", "email", "address", "googleMapsUrl", "facebook", "instagram", "workingHours"],
+  bookings: ["id", "patientName", "phone", "age", "gender", "specialtyId", "specialtyName", "doctorId", "doctorName", "date", "time", "status", "notes", "createdAt"],
+  admin_users: ["id", "username", "password", "name", "role", "active"],
+  prescriptions: ["id", "bookingId", "patientName", "doctorName", "medicines", "notes", "createdAt"],
+  reports: ["id", "title", "type", "data", "createdAt"]
 };
 
-const json = (res, status, body) => {
-  res.statusCode = status;
-  res.setHeader("Content-Type", "application/json; charset=utf-8");
-  res.end(JSON.stringify(body));
-};
-
-const readBody = async (req) => {
-  let body = "";
-  for await (const chunk of req) body += chunk;
-  return body ? JSON.parse(body) : {};
-};
-
-const parseValue = (value) => {
-  try {
-    if (value === null || value === undefined || value === "") return null;
-    return typeof value === "string" ? JSON.parse(value) : value;
-  } catch {
-    return value;
-  }
-};
-
-const cleanBookingPayload = (booking = {}) => {
-  const allowed = [
-    "id",
-    "patientName",
-    "patient_name",
-    "phone",
-    "email",
-    "age",
-    "specialtyId",
-    "specialty_id",
-    "specialtyName",
-    "specialty_name",
-    "doctorId",
-    "doctor_id",
-    "doctorName",
-    "doctor_name",
-    "date",
-    "time",
-    "reason",
-    "notes",
-    "status",
-    "created_at"
-  ];
-
-  const payload = {};
+function normalizeItem(table, item) {
+  if (!item || typeof item !== "object") return item;
+  const allowed = tableColumns[table];
+  if (!allowed) return item;
+  const out = {};
   for (const key of allowed) {
-    if (booking[key] !== undefined) payload[key] = booking[key];
+    if (Object.prototype.hasOwnProperty.call(item, key)) out[key] = item[key];
+  }
+  return out;
+}
+
+async function supabase(path, options = {}) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in Vercel Environment Variables");
   }
 
-  return {
-    ...payload,
-    patient_name: payload.patient_name || payload.patientName,
-    specialty_id: payload.specialty_id || payload.specialtyId,
-    specialty_name: payload.specialty_name || payload.specialtyName,
-    doctor_id: payload.doctor_id || payload.doctorId,
-    doctor_name: payload.doctor_name || payload.doctorName
-  };
-};
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: options.prefer || "return=representation",
+      ...(options.headers || {})
+    }
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Supabase ${response.status}: ${body}`);
+  }
+
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
+}
+
+async function readTable(table) {
+  return await supabase(`${table}?select=*`, { method: "GET" });
+}
+
+async function replaceTable(table, items) {
+  const normalized = Array.isArray(items) ? items.map((item) => normalizeItem(table, item)) : [];
+  await supabase(table, { method: "DELETE", headers: { Prefer: "return=minimal" } });
+  if (!normalized.length) return [];
+  return await supabase(table, {
+    method: "POST",
+    body: JSON.stringify(normalized),
+    prefer: "resolution=merge-duplicates,return=representation"
+  });
+}
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return json(res, 405, { ok: false, error: "Method not allowed" });
-  }
-
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceRoleKey) {
-    return json(res, 500, {
-      ok: false,
-      error: "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in Vercel Environment Variables"
-    });
-  }
-
-  const sbFetch = async (path, options = {}) => {
-    const response = await fetch(`${supabaseUrl.replace(/\/$/, "")}/rest/v1/${path}`, {
-      ...options,
-      headers: {
-        apikey: serviceRoleKey,
-        Authorization: `Bearer ${serviceRoleKey}`,
-        "Content-Type": "application/json",
-        Prefer: options.prefer || "return=representation",
-        ...(options.headers || {})
-      }
-    });
-
-    const text = await response.text();
-
-    if (!response.ok) {
-      throw new Error(text || `Supabase error ${response.status}`);
-    }
-
-    return text ? JSON.parse(text) : null;
-  };
-
-  const saveSiteValue = async (key, value, label) => {
-    const payload = {
-      key,
-      value: JSON.stringify(value),
-      type: "json",
-      label: label || LABELS[key] || key,
-      updated_at: new Date().toISOString()
-    };
-
-    const patched = await sbFetch(`site_content?key=eq.${encodeURIComponent(key)}`, {
-      method: "PATCH",
-      body: JSON.stringify(payload)
-    });
-
-    if (Array.isArray(patched) && patched.length > 0) return patched[0];
-
-    const inserted = await sbFetch("site_content", {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-
-    return Array.isArray(inserted) ? inserted[0] : inserted;
-  };
+  res.setHeader("Cache-Control", "no-store, max-age=0");
 
   try {
-    const body = await readBody(req);
-    const action = body.action;
-
-    if (action === "load") {
-      const keys = Object.values(DATA_KEYS);
-      const encodedKeys = keys.map((key) => `"${key}"`).join(",");
-      const siteRows = await sbFetch(
-        `site_content?select=key,value,type,label,updated_at&key=in.(${encodedKeys})`
-      ).catch(() => []);
-
-      const collections = {};
-      for (const row of Array.isArray(siteRows) ? siteRows : []) {
-        collections[row.key] = parseValue(row.value);
-      }
-
-      if (!collections[DATA_KEYS.doctors]) {
-        const doctors = await sbFetch("doctors?select=*&order=id.asc").catch(() => []);
-        if (Array.isArray(doctors) && doctors.length > 0) {
-          collections[DATA_KEYS.doctors] = doctors;
-          await saveSiteValue(DATA_KEYS.doctors, doctors).catch(() => {});
+    if (req.method === "GET") {
+      const payload = {};
+      for (const [key, table] of Object.entries(TABLES)) {
+        try {
+          payload[key] = await readTable(table);
+        } catch (error) {
+          payload[key] = [];
+          payload[`${key}Error`] = error.message;
         }
       }
+      return res.status(200).json({ ok: true, data: payload });
+    }
 
-      if (!collections[DATA_KEYS.users]) {
-        const users = await sbFetch("admin_users?select=*&order=id.asc").catch(() => []);
-        if (Array.isArray(users) && users.length > 0) {
-          collections[DATA_KEYS.users] = users;
-          await saveSiteValue(DATA_KEYS.users, users).catch(() => {});
-        }
+    if (req.method === "PUT" || req.method === "POST") {
+      const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
+      const key = body.key;
+      const items = body.items;
+
+      if (!key || !TABLES[key]) {
+        return res.status(400).json({ ok: false, error: `Unknown data key: ${key}` });
       }
 
-      const bookings = await sbFetch("bookings?select=*&order=created_at.desc").catch(() => []);
+      if (!Array.isArray(items)) {
+        return res.status(400).json({ ok: false, error: "items must be an array" });
+      }
 
-      return json(res, 200, {
-        ok: true,
-        collections,
-        bookings: Array.isArray(bookings) ? bookings : []
-      });
+      const saved = await replaceTable(TABLES[key], items);
+      return res.status(200).json({ ok: true, key, count: saved?.length || 0, data: saved || [] });
     }
 
-    if (action === "saveCollection") {
-      const { key, value, label } = body;
-      if (!key) return json(res, 400, { ok: false, error: "Missing collection key" });
-
-      const saved = await saveSiteValue(key, value, label);
-      return json(res, 200, { ok: true, saved });
-    }
-
-    if (action === "listBookings") {
-      const bookings = await sbFetch("bookings?select=*&order=created_at.desc");
-      return json(res, 200, { ok: true, bookings: Array.isArray(bookings) ? bookings : [] });
-    }
-
-    if (action === "addBooking") {
-      const payload = cleanBookingPayload({
-        ...body.booking,
-        id: body.booking?.id || `FHH-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-        created_at: body.booking?.created_at || new Date().toISOString(),
-        status: body.booking?.status || "pending"
-      });
-
-      const inserted = await sbFetch("bookings", {
-        method: "POST",
-        body: JSON.stringify(payload)
-      });
-
-      return json(res, 200, {
-        ok: true,
-        booking: Array.isArray(inserted) ? inserted[0] : inserted
-      });
-    }
-
-    if (action === "updateBookingStatus") {
-      const { id, status } = body;
-      if (!id) return json(res, 400, { ok: false, error: "Missing booking id" });
-
-      const updated = await sbFetch(`bookings?id=eq.${encodeURIComponent(id)}`, {
-        method: "PATCH",
-        body: JSON.stringify({ status })
-      });
-
-      return json(res, 200, {
-        ok: true,
-        booking: Array.isArray(updated) ? updated[0] : updated
-      });
-    }
-
-    if (action === "deleteBooking") {
-      const { id } = body;
-      if (!id) return json(res, 400, { ok: false, error: "Missing booking id" });
-
-      await sbFetch(`bookings?id=eq.${encodeURIComponent(id)}`, {
-        method: "DELETE",
-        prefer: "return=minimal"
-      });
-
-      return json(res, 200, { ok: true });
-    }
-
-    return json(res, 400, { ok: false, error: `Unknown action: ${action}` });
+    return res.status(405).json({ ok: false, error: "Method not allowed" });
   } catch (error) {
-    console.error("hospital-data API error:", error);
-    return json(res, 500, { ok: false, error: error.message || "Internal server error" });
+    return res.status(500).json({ ok: false, error: error.message });
   }
 }

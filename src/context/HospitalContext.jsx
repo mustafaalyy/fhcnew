@@ -1,4 +1,97 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, // Load data from Supabase first. mockData is only a fallback if Supabase returns empty tables.
+  useEffect(() => {
+    let mounted = true;
+
+    const hydrate = async () => {
+      try {
+        const data = await apiLoadHospitalData();
+        if (!mounted) return;
+
+        const nextDoctors = Array.isArray(data.doctors) && data.doctors.length ? data.doctors : INITIAL_DOCTORS;
+        const nextSlides = Array.isArray(data.slides) && data.slides.length ? data.slides : INITIAL_SLIDES;
+        const nextAboutSections = Array.isArray(data.aboutSections) && data.aboutSections.length ? data.aboutSections : INITIAL_ABOUT_SECTIONS;
+        const nextSettings = Array.isArray(data.settings) && data.settings.length ? data.settings[0] : DEFAULT_SETTINGS;
+        const nextBookings = Array.isArray(data.bookings) ? data.bookings : INITIAL_BOOKINGS;
+        const nextUsers = Array.isArray(data.users) && data.users.length ? data.users : INITIAL_USERS;
+        const nextPrescriptions = Array.isArray(data.prescriptions) ? data.prescriptions : INITIAL_PRESCRIPTIONS;
+        const nextReports = Array.isArray(data.reports) ? data.reports : INITIAL_REPORTS;
+
+        setDoctors(nextDoctors);
+        setSlides(nextSlides);
+        setAboutSections(nextAboutSections);
+        setSettings(nextSettings);
+        setBookings(nextBookings);
+        setUsers(nextUsers);
+        setPrescriptions(nextPrescriptions);
+        setReports(nextReports);
+        setSupabaseError("");
+
+        const localUser = localStorage.getItem("fhh_current_user");
+        if (localUser) setCurrentUser(safeParseStorage(localUser, null));
+      } catch (error) {
+        console.error("Supabase hydrate failed:", error);
+        if (!mounted) return;
+        setSupabaseError(error.message || "فشل الاتصال بقاعدة البيانات");
+        setDoctors(INITIAL_DOCTORS);
+        setSlides(INITIAL_SLIDES);
+        setAboutSections(INITIAL_ABOUT_SECTIONS);
+        setSettings(DEFAULT_SETTINGS);
+        setBookings(INITIAL_BOOKINGS);
+        setUsers(INITIAL_USERS);
+        setPrescriptions(INITIAL_PRESCRIPTIONS);
+        setReports(INITIAL_REPORTS);
+      }
+    };
+
+    hydrate();
+
+    
+  const persistDoctors = async (nextDoctors) => {
+    setDoctors(nextDoctors);
+    await apiSaveHospitalData("doctors", nextDoctors);
+  };
+
+  const persistSlides = async (nextSlides) => {
+    setSlides(nextSlides);
+    await apiSaveHospitalData("slides", nextSlides);
+  };
+
+  const persistAboutSections = async (nextAboutSections) => {
+    setAboutSections(nextAboutSections);
+    await apiSaveHospitalData("aboutSections", Array.isArray(nextAboutSections) ? nextAboutSections : [nextAboutSections]);
+  };
+
+  const persistSettings = async (nextSettings) => {
+    setSettings(nextSettings);
+    await apiSaveHospitalData("settings", [nextSettings]);
+  };
+
+  const persistBookings = async (nextBookings) => {
+    setBookings(nextBookings);
+    await apiSaveHospitalData("bookings", nextBookings);
+  };
+
+  const persistUsers = async (nextUsers) => {
+    setUsers(nextUsers);
+    await apiSaveHospitalData("users", nextUsers);
+  };
+
+  const persistPrescriptions = async (nextPrescriptions) => {
+    setPrescriptions(nextPrescriptions);
+    await apiSaveHospitalData("prescriptions", nextPrescriptions);
+  };
+
+  const persistReports = async (nextReports) => {
+    setReports(nextReports);
+    await apiSaveHospitalData("reports", nextReports);
+  };
+
+return () => {
+      mounted = false;
+    };
+  }, []);
+
+useEffect } from "react";
 import {
   INITIAL_SPECIALTIES,
   INITIAL_DOCTORS,
@@ -12,6 +105,44 @@ import {
 } from "../utils/mockData";
 
 const HospitalContext = createContext();
+
+
+const apiLoadHospitalData = async () => {
+  const response = await fetch("/api/hospital-data", {
+    method: "GET",
+    headers: { "Accept": "application/json" },
+    cache: "no-store"
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok || !payload.ok) {
+    throw new Error(payload.error || "فشل تحميل البيانات من Supabase");
+  }
+
+  return payload.data || {};
+};
+
+const apiSaveHospitalData = async (key, items) => {
+  const response = await fetch("/api/hospital-data", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json"
+    },
+    body: JSON.stringify({ key, items })
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok || !payload.ok) {
+    throw new Error(payload.error || `فشل حفظ ${key} في Supabase`);
+  }
+
+  return payload.data || [];
+};
+
+
 
 const DATA_KEYS = {
   specialties: "app_specialties",
@@ -116,7 +247,9 @@ export const HospitalProvider = ({ children }) => {
   const [prescriptions, setPrescriptions] = useState(INITIAL_PRESCRIPTIONS);
   const [reports, setReports] = useState(INITIAL_REPORTS);
   const [currentUser, setCurrentUser] = useState(null);
-  const [cloudLoading, setCloudLoading] = useState(true);
+  
+  const [supabaseError, setSupabaseError] = useState("");
+const [cloudLoading, setCloudLoading] = useState(true);
   const [cloudError, setCloudError] = useState("");
 
   const fetchBookings = async () => {
