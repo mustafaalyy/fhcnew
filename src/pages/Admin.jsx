@@ -18,6 +18,8 @@ export default function Admin({ setCurrentTab }) {
     prescriptions,
     reports,
     currentUser,
+    cloudLoading,
+    cloudError,
     login,
     logout,
     updateBookingStatus,
@@ -252,42 +254,48 @@ export default function Admin({ setCurrentTab }) {
     return aboutSections || {};
   };
 
-  const loadEditorStates = () => {
+  const loadEditorStates = React.useCallback(() => {
     // Load slides values
-    if (slides.length >= 3) {
-      setSlideTitle1(slides[0].title); setSlideSub1(slides[0].subtitle); setSlideImg1(slides[0].image);
-      setSlideTitle2(slides[1].title); setSlideSub2(slides[1].subtitle); setSlideImg2(slides[1].image);
-      setSlideTitle3(slides[2].title); setSlideSub3(slides[2].subtitle); setSlideImg3(slides[2].image);
+    if (slides && slides.length >= 3) {
+      setSlideTitle1(slides[0]?.title || ""); setSlideSub1(slides[0]?.subtitle || ""); setSlideImg1(slides[0]?.image || "");
+      setSlideTitle2(slides[1]?.title || ""); setSlideSub2(slides[1]?.subtitle || ""); setSlideImg2(slides[1]?.image || "");
+      setSlideTitle3(slides[2]?.title || ""); setSlideSub3(slides[2]?.subtitle || ""); setSlideImg3(slides[2]?.image || "");
     }
     // Load About
-    const about = normalizeAboutSections();
-    setAboutStory(about.story || "");
-    setAboutMission(about.mission || "");
-    setAboutVision(about.vision || "");
+    if (aboutSections) {
+      const about = Array.isArray(aboutSections) ? {
+        story: aboutSections.find((item) => item.id === "story" || item.key === "story")?.content || "",
+        mission: aboutSections.find((item) => item.id === "mission" || item.key === "mission")?.content || "",
+        vision: aboutSections.find((item) => item.id === "vision" || item.key === "vision")?.content || ""
+      } : aboutSections;
+      setAboutStory(about.story || "");
+      setAboutMission(about.mission || "");
+      setAboutVision(about.vision || "");
+    }
     // Load Settings
-    const normalizedSettings = settings || {};
-    setSetHospitalName(normalizedSettings.hospitalName || normalizedSettings.hospitalNameAr || normalizedSettings.logoText || "");
-    setSetLogoImage(normalizedSettings.logo || "");
-    setSetPrimaryColor(normalizedSettings.primaryColor || normalizedSettings.primary_color || "#2a9db5");
-    setSetSecondaryColor(normalizedSettings.secondaryColor || normalizedSettings.secondary_color || "#5aab6b");
-    setSetDarkColor(normalizedSettings.darkColor || normalizedSettings.dark_color || "#1c2b35");
-    setSetPhone(normalizedSettings.phone || normalizedSettings.mainPhone || "");
-    setSetEmergencyPhone(normalizedSettings.emergencyPhone || normalizedSettings.emergency_phone || "");
-    setSetWhatsapp(normalizedSettings.whatsapp || normalizedSettings.whatsappNumber || "");
-    setSetAddress(normalizedSettings.address || "");
-    setSetMapsUrl(normalizedSettings.mapsUrl || normalizedSettings.googleMapsUrl || "");
-    setSetMapsEmbed(normalizedSettings.mapsEmbedSrc || normalizedSettings.mapsEmbed || "");
-    setSetExpStat(normalizedSettings.stats?.experience || normalizedSettings.experience || "");
-    setSetPatStat(normalizedSettings.stats?.patients || normalizedSettings.patients || "");
-    setSetDocStat(normalizedSettings.stats?.doctors || normalizedSettings.doctorsCount || "");
-    setSetSatStat(normalizedSettings.stats?.satisfaction || normalizedSettings.satisfaction || "");
-  };
+    const s = settings || {};
+    setSetHospitalName(s.hospitalName || s.hospitalNameAr || s.logoText || "");
+    setSetLogoImage(s.logo || "");
+    setSetPrimaryColor(s.primaryColor || s.primary_color || "#2a9db5");
+    setSetSecondaryColor(s.secondaryColor || s.secondary_color || "#5aab6b");
+    setSetDarkColor(s.darkColor || s.dark_color || "#1c2b35");
+    setSetPhone(s.phone || s.mainPhone || "");
+    setSetEmergencyPhone(s.emergencyPhone || s.emergency_phone || "");
+    setSetWhatsapp(s.whatsapp || s.whatsappNumber || "");
+    setSetAddress(s.address || "");
+    setSetMapsUrl(s.mapsUrl || s.googleMapsUrl || "");
+    setSetMapsEmbed(s.mapsEmbedSrc || s.mapsEmbed || "");
+    setSetExpStat(s.stats?.experience || s.experience || "");
+    setSetPatStat(s.stats?.patients || s.patients || "");
+    setSetDocStat(s.stats?.doctors || s.doctorsCount || "");
+    setSetSatStat(s.stats?.satisfaction || s.satisfaction || "");
+  }, [slides, aboutSections, settings]);
 
   // Sync admin form fields whenever Supabase/context data finishes loading.
   useEffect(() => {
     if (!currentUser) return;
     loadEditorStates();
-  }, [currentUser, slides, aboutSections, settings]);
+  }, [currentUser, loadEditorStates]);
 
   // CSV Export function
   const handleCSVExport = () => {
@@ -572,6 +580,17 @@ export default function Admin({ setCurrentTab }) {
     const allowed = currentUser.allowedTabs || [];
     return allowed.includes(tabId);
   };
+
+  // Show loading while Supabase data is being fetched
+  if (cloudLoading) {
+    return (
+      <div style={{ backgroundColor: "var(--color-light)", padding: "8rem 0", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: "1rem" }}>
+        <div style={{ width: "48px", height: "48px", border: "4px solid var(--color-border)", borderTop: "4px solid var(--color-primary)", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+        <p style={{ color: "var(--color-text-light)", fontSize: "1rem" }}>جاري تحميل البيانات...</p>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
   // Login Screen
   if (!currentUser) {
