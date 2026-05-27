@@ -399,7 +399,7 @@ export default function Home({ setCurrentTab, setSelectedSpecialtyId, setSelecte
         </div>
       </section>
 
-      {/* CTA section */
+      {/* CTA section */}
       <section 
         className="section-padding animate-fade"
         style={{
