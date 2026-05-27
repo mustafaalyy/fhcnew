@@ -12,6 +12,8 @@ export default function Admin({ setCurrentTab }) {
     aboutSections,
     settings,
     bookings,
+    bookingsLoading,
+    fetchBookings,
     users,
     prescriptions,
     reports,
@@ -868,7 +870,11 @@ export default function Admin({ setCurrentTab }) {
               </div>
 
               {/* Table list */}
-              {getFilteredBookings().length > 0 ? (
+              {bookingsLoading ? (
+                <div style={{ textAlign: "center", padding: "3rem", color: "var(--color-text-light)" }}>
+                  <div style={{ fontSize: "1rem" }}>⏳ جاري تحميل الحجوزات من قاعدة البيانات...</div>
+                </div>
+              ) : getFilteredBookings().length > 0 ? (
                 <div style={{ overflowX: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
                     <thead>
@@ -954,6 +960,9 @@ export default function Admin({ setCurrentTab }) {
               ) : (
                 <div style={{ textAlign: "center", padding: "3rem" }}>
                   <p style={{ color: "var(--color-text-light)" }}>لا توجد أي طلبات حجز تطابق الخيارات المحددة.</p>
+                  <button onClick={fetchBookings} className="btn btn-outline" style={{ marginTop: "1rem", fontSize: "0.85rem" }}>
+                    🔄 إعادة تحميل الحجوزات
+                  </button>
                 </div>
               )}
             </div>
