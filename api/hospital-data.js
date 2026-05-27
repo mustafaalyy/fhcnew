@@ -36,7 +36,7 @@ async function saveSiteValue(key, value, label = "") {
   const payload = {
     key,
     value: JSON.stringify(value),
-    type: "json",
+    type: "text",
     label,
     updated_at: new Date().toISOString()
   };
