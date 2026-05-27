@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useHospital } from "../context/HospitalContext";
 import { 
   Lock, User, LogOut, Check, X, Shield, Plus, Edit, Trash, Download, Settings, Users, FileText, Stethoscope, Image, CheckSquare
@@ -240,6 +240,18 @@ export default function Admin({ setCurrentTab }) {
     }
   };
 
+
+  const normalizeAboutSections = () => {
+    if (Array.isArray(aboutSections)) {
+      return {
+        story: aboutSections.find((item) => item.id === "story" || item.key === "story")?.content || "",
+        mission: aboutSections.find((item) => item.id === "mission" || item.key === "mission")?.content || "",
+        vision: aboutSections.find((item) => item.id === "vision" || item.key === "vision")?.content || ""
+      };
+    }
+    return aboutSections || {};
+  };
+
   const loadEditorStates = () => {
     // Load slides values
     if (slides.length >= 3) {
@@ -248,26 +260,35 @@ export default function Admin({ setCurrentTab }) {
       setSlideTitle3(slides[2].title); setSlideSub3(slides[2].subtitle); setSlideImg3(slides[2].image);
     }
     // Load About
-    setAboutStory(aboutSections.story || "");
-    setAboutMission(aboutSections.mission || "");
-    setAboutVision(aboutSections.vision || "");
+    const about = normalizeAboutSections();
+    setAboutStory(about.story || "");
+    setAboutMission(about.mission || "");
+    setAboutVision(about.vision || "");
     // Load Settings
-    setSetHospitalName(settings.hospitalName || "");
-    setSetLogoImage(settings.logo || localStorage.getItem("fhh_logo") || "");
-    setSetPrimaryColor(settings.primaryColor || "");
-    setSetSecondaryColor(settings.secondaryColor || "");
-    setSetDarkColor(settings.darkColor || "");
-    setSetPhone(settings.phone || "");
-    setSetEmergencyPhone(settings.emergencyPhone || "");
-    setSetWhatsapp(settings.whatsapp || "");
+    setSetHospitalName(settings.hospitalName || settings.hospitalNameAr || "");
+    setSetLogoImage(settings.logo || "");
+    setSetPrimaryColor(settings.primaryColor || settings.primary_color || "");
+    setSetSecondaryColor(settings.secondaryColor || settings.secondary_color || "");
+    setSetDarkColor(settings.darkColor || settings.dark_color || "");
+    setSetPhone(settings.phone || settings.mainPhone || "");
+    setSetEmergencyPhone(settings.emergencyPhone || settings.emergency_phone || "");
+    setSetWhatsapp(settings.whatsapp || settings.whatsappNumber || "");
     setSetAddress(settings.address || "");
-    setSetMapsUrl(settings.mapsUrl || "");
-    setSetMapsEmbed(settings.mapsEmbedSrc || "");
-    setSetExpStat(settings.stats?.experience || "");
-    setSetPatStat(settings.stats?.patients || "");
-    setSetDocStat(settings.stats?.doctors || "");
-    setSetSatStat(settings.stats?.satisfaction || "");
+    setSetMapsUrl(settings.mapsUrl || settings.googleMapsUrl || "");
+    setSetMapsEmbed(settings.mapsEmbedSrc || settings.mapsEmbed || "");
+    setSetExpStat(settings.stats?.experience || settings.experience || "");
+    setSetPatStat(settings.stats?.patients || settings.patients || "");
+    setSetDocStat(settings.stats?.doctors || settings.doctorsCount || "");
+    setSetSatStat(settings.stats?.satisfaction || settings.satisfaction || "");
   };
+
+  // Keep admin edit forms synced with the latest context/Supabase data.
+  // This is required after refresh/cache clear because the user session may be restored
+  // without pressing the login button again.
+  useEffect(() => {
+    if (!currentUser) return;
+    loadEditorStates();
+  }, [currentUser, slides, aboutSections, settings]);
 
   // CSV Export function
   const handleCSVExport = () => {
@@ -349,23 +370,33 @@ export default function Admin({ setCurrentTab }) {
     e.preventDefault();
     updateSettings({
       hospitalName: setHospitalName,
+      hospitalNameAr: setHospitalName,
       logoText: setHospitalName,
       logo: setLogoImage,
       primaryColor: setPrimaryColor,
       secondaryColor: setSecondaryColor,
       darkColor: setDarkColor,
       phone: setPhone,
+      mainPhone: setPhone,
       emergencyPhone: setEmergencyPhone,
+      emergency_phone: setEmergencyPhone,
       whatsapp: setWhatsapp,
+      whatsappNumber: setWhatsapp,
       address: setAddress,
       mapsUrl: setMapsUrl,
+      googleMapsUrl: setMapsUrl,
       mapsEmbedSrc: setMapsEmbed,
+      mapsEmbed: setMapsEmbed,
       stats: {
         experience: setExpStat,
         patients: setPatStat,
         doctors: setDocStat,
         satisfaction: setSatStat
-      }
+      },
+      experience: setExpStat,
+      patients: setPatStat,
+      doctorsCount: setDocStat,
+      satisfaction: setSatStat
     });
     alert("تم حفظ وتحديث إعدادات النظام وخصائص الألوان بنجاح!");
   };
