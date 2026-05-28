@@ -431,6 +431,24 @@ export default function Admin({ setCurrentTab }) {
     deleteSpecialty(id);
   };
 
+
+  const handleLoginSubmit = (e) => {
+    e.preventDefault();
+    setLoginError("");
+
+    const result = login(usernameInput, passwordInput);
+
+    if (result?.success) {
+      setUsernameInput("");
+      setPasswordInput("");
+      setLoginError("");
+      setActiveSubTab("bookings");
+      setFormData(buildFormData(safeSlides, aboutSections, settings));
+    } else {
+      setLoginError(result?.message || "اسم المستخدم أو كلمة المرور غير صحيحة");
+    }
+  };
+
   // Tab permission helper
   const canAccessTab = (tabId) => {
     if (!currentUser) return false;
