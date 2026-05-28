@@ -81,7 +81,7 @@ export default function Admin({ setCurrentTab }) {
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
   const [rxPatientName, setRxPatientName] = useState("");
   const [rxDoctorName, setRxDoctorName] = useState("");
-  const [rxMedicines, setRxMedicines] = useState("");
+  const [rxMedicines, setRxMedicines] = useState([{ name: "", dosage: "", frequency: "", period: "" }]);
   const [rxNotes, setRxNotes] = useState("");
 
   // Report modal state
@@ -89,6 +89,31 @@ export default function Admin({ setCurrentTab }) {
   const [repTitle, setRepTitle] = useState("");
   const [repType, setRepType] = useState("medical");
   const [repData, setRepData] = useState("");
+
+  // Missing state used by the Admin JSX
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [usrUsername, setUsrUsername] = useState("");
+  const [usrName, setUsrName] = useState("");
+  const [usrRole, setUsrRole] = useState("receptionist");
+  const [usrPassword, setUsrPassword] = useState("");
+  const [usrDoctorId, setUsrDoctorId] = useState("");
+  const [usrAllowedTabs, setUsrAllowedTabs] = useState(["bookings"]);
+
+  const [medicalSearchTerm, setMedicalSearchTerm] = useState("");
+  const [selectedPatientBooking, setSelectedPatientBooking] = useState(null);
+
+  const [rxDiagnosis, setRxDiagnosis] = useState("");
+  const [repResultText, setRepResultText] = useState("");
+  const [repNotes, setRepNotes] = useState("");
+  const [repStatus, setRepStatus] = useState("ready");
+
+  const [showSpecModal, setShowSpecModal] = useState(false);
+  const [editingSpec, setEditingSpec] = useState(null);
+  const [specName, setSpecName] = useState("");
+  const [specDesc, setSpecDesc] = useState("");
+  const [specIcon, setSpecIcon] = useState("Stethoscope");
+  const [specFeatures, setSpecFeatures] = useState("");
 
   // ── Single form-data state (stays in sync with context) ──────────────────
   const getAbout = (sections) => {
@@ -465,20 +490,37 @@ export default function Admin({ setCurrentTab }) {
 
 
   const openAddPrescription = () => {
-    setRxPatientName("");
+    setRxPatientName(selectedPatientBooking?.patientName || "");
     setRxDoctorName(currentUser?.name || "");
-    setRxMedicines("");
+    setRxDiagnosis("");
+    setRxMedicines([{ name: "", dosage: "", frequency: "", period: "" }]);
     setRxNotes("");
     setShowPrescriptionModal(true);
+  };
+
+  const handleAddMedicineRow = () => {
+    setRxMedicines(prev => [...prev, { name: "", dosage: "", frequency: "", period: "" }]);
+  };
+
+  const handleMedicineChange = (index, field, value) => {
+    setRxMedicines(prev => prev.map((med, i) => i === index ? { ...med, [field]: value } : med));
+  };
+
+  const handleRemoveMedicineRow = (index) => {
+    setRxMedicines(prev => prev.filter((_, i) => i !== index));
   };
 
   const handlePrescriptionSubmit = (e) => {
     e.preventDefault();
     const prescription = addPrescription({
-      patientName: rxPatientName,
-      doctorName: rxDoctorName,
-      medicines: rxMedicines.split("\n").map((m) => m.trim()).filter(Boolean),
-      notes: rxNotes
+      bookingId: selectedPatientBooking?.id,
+      phone: selectedPatientBooking?.phone,
+      patientName: selectedPatientBooking?.patientName || rxPatientName,
+      doctorName: currentUser?.name || rxDoctorName,
+      diagnosis: rxDiagnosis,
+      medicines: rxMedicines.filter((m) => m.name?.trim()),
+      notes: rxNotes,
+      date: new Date().toLocaleDateString("ar-EG")
     });
     setShowPrescriptionModal(false);
     return prescription;
@@ -486,17 +528,25 @@ export default function Admin({ setCurrentTab }) {
 
   const openAddReport = () => {
     setRepTitle("");
-    setRepType("medical");
-    setRepData("");
+    setRepType("lab");
+    setRepResultText("");
+    setRepNotes("");
+    setRepStatus("ready");
     setShowReportModal(true);
   };
 
   const handleReportSubmit = (e) => {
     e.preventDefault();
     const report = addReport({
+      bookingId: selectedPatientBooking?.id,
+      phone: selectedPatientBooking?.phone,
+      patientName: selectedPatientBooking?.patientName,
       title: repTitle,
       type: repType,
-      data: repData
+      resultText: repResultText,
+      notes: repNotes,
+      status: repStatus,
+      date: new Date().toLocaleDateString("ar-EG")
     });
     setShowReportModal(false);
     return report;
@@ -1082,9 +1132,9 @@ export default function Admin({ setCurrentTab }) {
                                     <div style={{ fontWeight: "bold", fontSize: "0.9rem", color: "var(--color-dark)" }}>{p.doctorName}</div>
                                     <div style={{ fontSize: "0.85rem", color: "var(--color-text)", marginTop: "0.25rem" }}>التشخيص: {p.diagnosis || "متابعة دورية"}</div>
                                     <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
-                                      {p.medicines.map((m, idx) => (
+                                      {(Array.isArray(p.medicines) ? p.medicines : []).map((m, idx) => (
                                         <span key={idx} style={{ fontSize: "0.7rem", backgroundColor: "rgba(42, 157, 181, 0.08)", color: "var(--color-primary)", padding: "0.1rem 0.4rem", borderRadius: "4px" }}>
-                                          {m.name}
+                                          {typeof m === "string" ? m : m.name}
                                         </span>
                                       ))}
                                     </div>
