@@ -154,7 +154,7 @@ export default function Admin({ setCurrentTab }) {
 
   const [formData, setFormData] = useState(() => buildFormData(slides, aboutSections, settings));
   const fd = (key) => formData[key] ?? "";
-  const setFd = (key) => (e) => setFormData(prev => ({ ...prev, [key]: e.target.value ?? e }));
+  const setFd = (key) => (e) => setFormData(prev => ({ ...prev, [key]: e?.target?.value !== undefined ? e.target.value : e }));
   const setFdVal = (key, val) => setFormData(prev => ({ ...prev, [key]: val }));
 
   // Shorthand aliases (so we don't have to rename all JSX)
