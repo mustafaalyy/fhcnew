@@ -1575,8 +1575,8 @@ export default function Admin({ setCurrentTab }) {
 
       {/* DOCTOR CREATE/EDIT MODAL OVERLAY */}
       {showDoctorModal && (
-        <div style={{ position: "fixed", top: 0, bottom: 0, left: 0, right: 0, backgroundColor: "rgba(0,0,0,0.6)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, padding: "1rem" }}>
-          <div className="luxury-card animate-fade" style={{ width: "100%", maxWidth: "600px", maxH: "90vh", overflowY: "auto", padding: "2.5rem" }}>
+        <div style={{ position: "fixed", top: 0, bottom: 0, left: 0, right: 0, backgroundColor: "rgba(0,0,0,0.6)", display: "flex", justifyContent: "center", alignItems: "flex-start", zIndex: 1000, padding: "1rem", overflowY: "auto" }}>
+          <div className="luxury-card animate-fade" style={{ width: "100%", maxWidth: "600px", maxHeight: "calc(100vh - 2rem)", overflowY: "auto", padding: "2.5rem" }}>
             <h3 style={{ fontSize: "1.3rem", fontWeight: "bold", marginBottom: "1.5rem" }}>
               {editingDoctor ? `تعديل بيانات الطبيب: ${editingDoctor.name}` : "إضافة طبيب جديد"}
             </h3>
