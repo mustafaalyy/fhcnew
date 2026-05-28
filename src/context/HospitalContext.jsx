@@ -12,8 +12,7 @@ import {
 } from "../utils/mockData";
 
 const SUPABASE_URL = "https://zyecuavgoesyisxjkzxu.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6Inp5ZWN1YXZnb2VzeWlzeGprenh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwOTk1NjUsImV4cCI6MjA5MjY3NTU2NX0.xVrRrfnFmZOUdIzzQDJyVvE3qcMkxib8JJuXFMc5SfE";
-
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5ZWN1YXZnb2VzeWlzeGprenh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwOTk1NjUsImV4cCI6MjA5MjY3NTU2NX0.xVrRrfnFmZOUdIzzQDJyVvE3qcMkxib8JJuXFMc5SfE";
 const HospitalContext = createContext();
 
 const DATA_KEYS = {
