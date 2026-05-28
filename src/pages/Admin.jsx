@@ -240,8 +240,8 @@ export default function Admin({ setCurrentTab }) {
     return list.filter((b) => {
       const matchesStatus = bookingFilterStatus === "all" ? true : b.status === bookingFilterStatus;
       const matchesSearch = bookingSearchTerm
-        ? b.patientName.toLowerCase().includes(bookingSearchTerm.toLowerCase()) || 
-          b.id.toLowerCase().includes(bookingSearchTerm.toLowerCase())
+        ? (b.patientName || "").toLowerCase().includes(bookingSearchTerm.toLowerCase()) || 
+          (b.id || "").toLowerCase().includes(bookingSearchTerm.toLowerCase())
         : true;
       return matchesStatus && matchesSearch;
     });
@@ -1027,7 +1027,7 @@ export default function Admin({ setCurrentTab }) {
                           return b.doctorId === currentUser.doctorId;
                         }
                         const term = medicalSearchTerm.toLowerCase();
-                        return b.patientName.toLowerCase().includes(term) || b.phone.includes(term) || b.id.toLowerCase().includes(term);
+                        return (b.patientName || "").toLowerCase().includes(term) || (b.phone || "").includes(term) || (b.id || "").toLowerCase().includes(term);
                       })
                       .map(b => (
                         <div 
