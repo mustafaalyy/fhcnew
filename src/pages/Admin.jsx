@@ -39,7 +39,8 @@ export default function Admin({ setCurrentTab }) {
     deleteReport,
     addSpecialty,
     updateSpecialty,
-    deleteSpecialty
+    deleteSpecialty,
+    uploadLogoToStorage
   } = useHospital();
 
   const safeSpecialties = Array.isArray(specialties) ? specialties : [];
@@ -1362,16 +1363,19 @@ export default function Admin({ setCurrentTab }) {
                     <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "bold", marginBottom: "0.4rem" }}>لوجو المستشفى</label>
                     <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
                       {setLogoImage && (
-                        <img src={setLogoImage} alt="logo preview" style={{ height: "50px", objectFit: "contain", borderRadius: "6px", border: "1px solid var(--color-border)" }} />
+                        <img src={setLogoImage} alt="logo preview" style={{ height: "50px", objectFit: "contain", borderRadius: "6px", border: "1px solid var(--color-border)", backgroundColor: "white" }} />
                       )}
                       <label style={{ padding: "0.6rem 1.2rem", backgroundColor: "var(--color-light)", border: "1px solid var(--color-border)", borderRadius: "var(--border-radius-sm)", cursor: "pointer", fontSize: "0.85rem", fontWeight: "600" }}>
                         📁 رفع لوجو جديد
-                        <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => {
+                        <input type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => {
                           const f = e.target.files[0];
-                          if (f) {
-                            const r = new FileReader();
-                            r.onload = ev => setSetLogoImage(ev.target.result);
-                            r.readAsDataURL(f);
+                          if (!f) return;
+                          try {
+                            const url = await uploadLogoToStorage(f);
+                            setSetLogoImage(url);
+                            alert("✅ تم رفع اللوجو بنجاح!");
+                          } catch (err) {
+                            alert("❌ فشل رفع اللوجو: " + err.message);
                           }
                         }} />
                       </label>

@@ -130,6 +130,26 @@ const sbFetch = async (path, options = {}) => {
   return body ? JSON.parse(body) : null;
 };
 
+// Upload logo to Supabase Storage and return public URL
+const uploadLogoToStorage = async (file) => {
+  const fileName = `logo_${Date.now()}.png`;
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/logos/${fileName}`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": file.type || "image/png",
+      "x-upsert": "true"
+    },
+    body: file
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Storage upload failed: ${err}`);
+  }
+  return `${SUPABASE_URL}/storage/v1/object/public/logos/${fileName}`;
+};
+
 const loadSiteValue = async (key, fallback) => {
   const row = await apiGet(`/api/hospital-data?key=${encodeURIComponent(key)}`);
   if (!row) return null;
@@ -496,7 +516,8 @@ export const HospitalProvider = ({ children }) => {
         deleteReport,
         addSpecialty,
         updateSpecialty,
-        deleteSpecialty
+        deleteSpecialty,
+        uploadLogoToStorage
       }}
     >
       {children}
