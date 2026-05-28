@@ -324,3 +324,120 @@ button {
 .nav-link:hover, .nav-link.active {
   color: var(--color-primary);
 }
+/* ===== Responsive & Global Size Improvements ===== */
+
+html {
+  font-size: 15px;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+.container {
+  max-width: 1180px;
+  padding-inline: 16px;
+}
+
+.section-padding {
+  padding: 4rem 0;
+}
+
+/* Typography */
+h1 {
+  font-size: clamp(2rem, 5vw, 4rem);
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: clamp(1.7rem, 4vw, 2.6rem);
+}
+
+p {
+  font-size: 0.98rem;
+}
+
+/* Cards */
+.luxury-card {
+  padding: 1.4rem;
+}
+
+/* Buttons */
+.btn {
+  padding: 0.7rem 1.3rem;
+  font-size: 0.95rem;
+}
+
+/* Images */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Tablet */
+@media (max-width: 992px) {
+  html {
+    font-size: 14px;
+  }
+
+  .container {
+    padding-inline: 14px;
+  }
+
+  .section-padding {
+    padding: 3.5rem 0;
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+
+  html {
+    font-size: 13.5px;
+  }
+
+  .container {
+    padding-inline: 12px;
+  }
+
+  .section-padding {
+    padding: 3rem 0;
+  }
+
+  .section-title {
+    margin-bottom: 2rem;
+  }
+
+  .section-title h2 {
+    font-size: 1.8rem;
+  }
+
+  .luxury-card {
+    padding: 1rem;
+    border-radius: 16px;
+  }
+
+  .btn {
+    width: 100%;
+    min-height: 46px;
+  }
+
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr !important;
+    gap: 1rem;
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
