@@ -16,12 +16,48 @@ import PatientPortal from "./pages/PatientPortal";
 
 const getInitialTabFromUrl = () => {
   const hash = window.location.hash.replace("#", "").toLowerCase();
-  const path = window.location.pathname.replace("/", "").toLowerCase();
-
-  if (hash === "admin" || path === "admin") return "admin";
-  if (hash === "portal" || path === "portal") return "portal";
+  if (hash === "admin") return "admin";
+  if (hash === "portal") return "portal";
   return "home";
 };
+
+
+class AdminErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, info) {
+    console.error("Admin page crashed:", error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: "6rem 1rem", backgroundColor: "var(--color-light)", minHeight: "60vh" }}>
+          <div className="container">
+            <div className="luxury-card" style={{ maxWidth: "760px", margin: "0 auto", textAlign: "center" }}>
+              <h2 style={{ color: "var(--color-danger)", marginBottom: "1rem" }}>حدث خطأ في لوحة التحكم</h2>
+              <p style={{ color: "var(--color-text-light)", marginBottom: "1rem" }}>
+                افتح Console لمعرفة تفاصيل الخطأ، أو أعد تحميل الصفحة.
+              </p>
+              <pre style={{ direction: "ltr", textAlign: "left", whiteSpace: "pre-wrap", background: "#111827", color: "#fff", padding: "1rem", borderRadius: "12px" }}>
+                {String(this.state.error?.message || this.state.error || "")}
+              </pre>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 
 function MainApp() {
@@ -41,16 +77,13 @@ function MainApp() {
   };
 
   useEffect(() => {
-    const handleRouteChange = () => {
+    const handleHashRoute = () => {
       const nextTab = getInitialTabFromUrl();
-      if (nextTab === "admin" || nextTab === "portal") {
-        setCurrentTab(nextTab);
-      }
+      if (nextTab === "admin" || nextTab === "portal") setCurrentTab(nextTab);
     };
-
-    handleRouteChange();
-    window.addEventListener("hashchange", handleRouteChange);
-    return () => window.removeEventListener("hashchange", handleRouteChange);
+    handleHashRoute();
+    window.addEventListener("hashchange", handleHashRoute);
+    return () => window.removeEventListener("hashchange", handleHashRoute);
   }, []);
 
   const renderPage = () => {
@@ -97,7 +130,7 @@ function MainApp() {
       case "portal":
         return <PatientPortal />;
       case "admin":
-        return <Admin setCurrentTab={navigateToTab} />;
+        return <AdminErrorBoundary><Admin setCurrentTab={navigateToTab} /></AdminErrorBoundary>;
       default:
         return (
           <Home

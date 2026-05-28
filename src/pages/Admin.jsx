@@ -42,6 +42,15 @@ export default function Admin({ setCurrentTab }) {
     deleteSpecialty
   } = useHospital();
 
+  const safeSpecialties = Array.isArray(specialties) ? specialties : [];
+  const safeDoctors = Array.isArray(doctors) ? doctors : [];
+  const safeSlides = Array.isArray(slides) ? slides : [];
+  const safeBookings = Array.isArray(bookings) ? bookings : [];
+  const safeUsers = Array.isArray(users) ? users : [];
+  const safePrescriptions = Array.isArray(prescriptions) ? prescriptions : [];
+  const safeReports = Array.isArray(reports) ? reports : [];
+
+
   // Login Form State
   const [usernameInput, setUsernameInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
@@ -185,8 +194,8 @@ export default function Admin({ setCurrentTab }) {
     // If logged in user is a doctor, they only see their own bookings!
     if (currentUser?.role === "doctor") {
       // Find matching doctor record
-      const matchedDoctor = doctors.find((d) => d.id === currentUser.doctorId);
-      list = bookings.filter((b) => b.doctorId === matchedDoctor?.id);
+      const matchedDoctor = safeDoctors.find((d) => d.id === currentUser.doctorId);
+      list = safeBookings.filter((b) => b.doctorId === matchedDoctor?.id);
     }
 
     return list.filter((b) => {
@@ -261,7 +270,7 @@ export default function Admin({ setCurrentTab }) {
   const openAddDoctor = () => {
     setEditingDoctor(null);
     setDocName("");
-    setDocSpecId(specialties[0]?.id || "");
+    setDocSpecId(safeSpecialties[0]?.id || "");
     setDocExperience("");
     setDocImage("https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400");
     setDocTags("استشاري، طبيب ممتاز");
@@ -288,7 +297,7 @@ export default function Admin({ setCurrentTab }) {
     e.preventDefault();
     if (!docName || !docExperience) return;
 
-    const selectedSpec = specialties.find(s => s.id === docSpecId);
+    const selectedSpec = safeSpecialties.find(s => s.id === docSpecId);
 
     const docPayload = {
       name: docName,
@@ -988,7 +997,7 @@ export default function Admin({ setCurrentTab }) {
                             الروشتات المكتوبة للمريض
                           </h5>
                           <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", maxHeight: "300px", overflowY: "auto" }}>
-                            {prescriptions.filter(p => p.bookingId === selectedPatientBooking.id || p.phone === selectedPatientBooking.phone).length === 0 ? (
+                            {safePrescriptions.filter(p => p.bookingId === selectedPatientBooking.id || p.phone === selectedPatientBooking.phone).length === 0 ? (
                               <p style={{ fontSize: "0.85rem", color: "var(--color-text-light)", textAlign: "center", padding: "1rem 0" }}>لا توجد روشتات صادرة.</p>
                             ) : (
                               prescriptions
@@ -1028,7 +1037,7 @@ export default function Admin({ setCurrentTab }) {
                             التحاليل والأشعة الطبية
                           </h5>
                           <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", maxHeight: "300px", overflowY: "auto" }}>
-                            {reports.filter(r => r.bookingId === selectedPatientBooking.id || r.phone === selectedPatientBooking.phone).length === 0 ? (
+                            {safeReports.filter(r => r.bookingId === selectedPatientBooking.id || r.phone === selectedPatientBooking.phone).length === 0 ? (
                               <p style={{ fontSize: "0.85rem", color: "var(--color-text-light)", textAlign: "center", padding: "1rem 0" }}>لا توجد تقارير أو تحاليل.</p>
                             ) : (
                               reports
@@ -1087,7 +1096,7 @@ export default function Admin({ setCurrentTab }) {
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }} className="admin-docs-grid">
-                {doctors.map((doc) => (
+                {safeDoctors.map((doc) => (
                   <div key={doc.id} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--border-radius-md)", padding: "1rem", display: "flex", gap: "1rem", alignItems: "center" }}>
                     <img src={doc.image} alt={doc.name} style={{ width: "60px", height: "60px", borderRadius: "50%", objectFit: "cover" }} />
                     <div style={{ flex: 1 }}>
@@ -1402,7 +1411,7 @@ export default function Admin({ setCurrentTab }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map((usr) => (
+                    {safeUsers.map((usr) => (
                       <tr key={usr.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
                         <td style={{ padding: "1rem", fontWeight: "bold" }}>{usr.name}</td>
                         <td style={{ padding: "1rem" }}>{usr.username}</td>
@@ -1458,7 +1467,7 @@ export default function Admin({ setCurrentTab }) {
                 <div>
                   <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "bold", marginBottom: "0.3rem" }}>التخصص الطبي</label>
                   <select className="form-input" value={docSpecId} onChange={(e) => setDocSpecId(e.target.value)}>
-                    {specialties.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    {safeSpecialties.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
                 <div>
@@ -1729,7 +1738,7 @@ export default function Admin({ setCurrentTab }) {
                   <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "bold", marginBottom: "0.3rem" }}>اربطه مع ملف الطبيب:</label>
                   <select className="form-input" value={usrDoctorId} onChange={(e) => setUsrDoctorId(e.target.value)}>
                     <option value="">-- اختر ملف الطبيب الممثل له --</option>
-                    {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    {safeDoctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                 </div>
               )}

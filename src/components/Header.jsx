@@ -3,7 +3,8 @@ import { Phone, MapPin, Menu, X, LogOut, Shield, Calendar } from "lucide-react";
 import { useHospital } from "../context/HospitalContext";
 
 export default function Header({ currentTab, setCurrentTab }) {
-  const { settings, currentUser, logout } = useHospital();
+  const { settings: rawSettings, currentUser, logout } = useHospital();
+  const settings = rawSettings || {};
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);  // Secret access: click logo 5 times quickly to open admin
   const logoClicksRef = useRef(0);
   const logoClickTimer = useRef(null);
@@ -14,7 +15,7 @@ export default function Header({ currentTab, setCurrentTab }) {
 
     if (logoClicksRef.current >= 5) {
       logoClicksRef.current = 0;
-      handleNavClick("admin");
+      setCurrentTab("admin");
       window.location.hash = "admin";
       return;
     }
@@ -23,7 +24,8 @@ export default function Header({ currentTab, setCurrentTab }) {
       logoClicksRef.current = 0;
     }, 2000);
 
-    handleNavClick("home");
+    setCurrentTab("home");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const navigation = [
