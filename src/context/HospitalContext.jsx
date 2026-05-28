@@ -282,6 +282,7 @@ export const HospitalProvider = ({ children }) => {
         setSlides(nextSlides);
         setAboutSections(nextAboutSections);
         setSettings(nextSettings);
+        if (nextSettings?.logo) localStorage.setItem("fhh_logo", nextSettings.logo);
         setUsers(nextUsers);
         setPrescriptions(nextPrescriptions);
         setReports(nextReports);
@@ -393,6 +394,9 @@ export const HospitalProvider = ({ children }) => {
   const updateSettings = (nextSettings) => {
     const mergedSettings = { ...settings, ...nextSettings };
     setSettings(mergedSettings);
+    if (mergedSettings.logo) {
+      localStorage.setItem("fhh_logo", mergedSettings.logo);
+    }
     saveCloudCollection(DATA_KEYS.settings, mergedSettings);
   };
 
