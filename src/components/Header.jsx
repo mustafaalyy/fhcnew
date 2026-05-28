@@ -1,26 +1,29 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Phone, MapPin, Menu, X, LogOut, Shield, Calendar } from "lucide-react";
 import { useHospital } from "../context/HospitalContext";
 
 export default function Header({ currentTab, setCurrentTab }) {
   const { settings, currentUser, logout } = useHospital();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  // Secret access: click logo 5 times quickly to open admin
-  const [logoClicks, setLogoClicks] = useState(0);
-  const logoClickTimer = React.useRef(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);  // Secret access: click logo 5 times quickly to open admin
+  const logoClicksRef = useRef(0);
+  const logoClickTimer = useRef(null);
 
-  const handleLogoSecretClick = () => {
-    setLogoClicks(prev => {
-      const next = prev + 1;
-      if (next >= 5) {
-        handleNavClick("admin");
-        clearTimeout(logoClickTimer.current);
-        return 0;
-      }
-      clearTimeout(logoClickTimer.current);
-      logoClickTimer.current = setTimeout(() => setLogoClicks(0), 2000);
-      return next;
-    });
+  const handleLogoClick = () => {
+    logoClicksRef.current += 1;
+    clearTimeout(logoClickTimer.current);
+
+    if (logoClicksRef.current >= 5) {
+      logoClicksRef.current = 0;
+      handleNavClick("admin");
+      window.location.hash = "admin";
+      return;
+    }
+
+    logoClickTimer.current = setTimeout(() => {
+      logoClicksRef.current = 0;
+    }, 2000);
+
+    handleNavClick("home");
   };
 
   const navigation = [
@@ -52,7 +55,7 @@ export default function Header({ currentTab, setCurrentTab }) {
           
           {/* Logo */}
           <div 
-            onClick={() => { handleNavClick("home"); handleLogoSecretClick(); }}
+            onClick={handleLogoClick}
             style={{ display: "flex", alignItems: "center", gap: "0.85rem", cursor: "pointer" }}
           >
             <img
