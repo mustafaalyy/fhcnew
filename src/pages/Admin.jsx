@@ -76,6 +76,20 @@ export default function Admin({ setCurrentTab }) {
   const [docDays, setDocDays] = useState("");
   const [docHours, setDocHours] = useState("");
 
+
+  // Prescription modal state
+  const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
+  const [rxPatientName, setRxPatientName] = useState("");
+  const [rxDoctorName, setRxDoctorName] = useState("");
+  const [rxMedicines, setRxMedicines] = useState("");
+  const [rxNotes, setRxNotes] = useState("");
+
+  // Report modal state
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [repTitle, setRepTitle] = useState("");
+  const [repType, setRepType] = useState("medical");
+  const [repData, setRepData] = useState("");
+
   // ── Single form-data state (stays in sync with context) ──────────────────
   const getAbout = (sections) => {
     if (!sections) return { story: "", mission: "", vision: "" };
@@ -447,6 +461,45 @@ export default function Admin({ setCurrentTab }) {
     } else {
       setLoginError(result?.message || "اسم المستخدم أو كلمة المرور غير صحيحة");
     }
+  };
+
+
+  const openAddPrescription = () => {
+    setRxPatientName("");
+    setRxDoctorName(currentUser?.name || "");
+    setRxMedicines("");
+    setRxNotes("");
+    setShowPrescriptionModal(true);
+  };
+
+  const handlePrescriptionSubmit = (e) => {
+    e.preventDefault();
+    const prescription = addPrescription({
+      patientName: rxPatientName,
+      doctorName: rxDoctorName,
+      medicines: rxMedicines.split("\n").map((m) => m.trim()).filter(Boolean),
+      notes: rxNotes
+    });
+    setShowPrescriptionModal(false);
+    return prescription;
+  };
+
+  const openAddReport = () => {
+    setRepTitle("");
+    setRepType("medical");
+    setRepData("");
+    setShowReportModal(true);
+  };
+
+  const handleReportSubmit = (e) => {
+    e.preventDefault();
+    const report = addReport({
+      title: repTitle,
+      type: repType,
+      data: repData
+    });
+    setShowReportModal(false);
+    return report;
   };
 
   // Tab permission helper
