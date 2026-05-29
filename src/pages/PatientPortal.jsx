@@ -50,7 +50,12 @@ export default function PatientPortal() {
     const cleanBookingId = bookingId.trim().toUpperCase();
 
     const matchingBooking = bookings.find(
-      (b) => b.id.toUpperCase() === cleanBookingId && b.phone === cleanPhone
+      (b) => {
+        const bId = (b.id || "").toString().trim().toUpperCase();
+        const bPhone = (b.phone || "").toString().trim().replace(/\s/g, "");
+        const inputPhone = cleanPhone.replace(/\s/g, "");
+        return bId === cleanBookingId && bPhone === inputPhone;
+      }
     );
 
     if (!matchingBooking) {
