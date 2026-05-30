@@ -340,21 +340,61 @@ export const HospitalProvider = ({ children }) => {
       created_at: new Date().toISOString(),
       status: newBooking.status || "pending"
     };
-
-    const saved = await apiPost({ action: "addBooking", booking: payload });
-    const finalBooking = saved || payload;
-    setBookings((prev) => [finalBooking, ...prev]);
-    return finalBooking;
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/bookings`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": "application/json",
+          Prefer: "return=representation"
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      const saved = Array.isArray(data) ? data[0] : data;
+      const finalBooking = saved || payload;
+      setBookings((prev) => [finalBooking, ...prev]);
+      return finalBooking;
+    } catch (err) {
+      console.error("addBooking error:", err);
+      setBookings((prev) => [payload, ...prev]);
+      return payload;
+    }
   };
 
   const updateBookingStatus = async (id, status) => {
-    await apiPost({ action: "updateBookingStatus", id, status });
-    setBookings((prev) => prev.map((booking) => (booking.id === id ? { ...booking, status } : booking)));
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${id}`, {
+        method: "PATCH",
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": "application/json",
+          Prefer: "return=minimal"
+        },
+        body: JSON.stringify({ status })
+      });
+    } catch (err) {
+      console.error("updateBookingStatus error:", err);
+    }
+    setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status } : b)));
   };
 
   const deleteBooking = async (id) => {
-    await apiPost({ action: "deleteBooking", id });
-    setBookings((prev) => prev.filter((booking) => booking.id !== id));
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${id}`, {
+        method: "DELETE",
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          Prefer: "return=minimal"
+        }
+      });
+    } catch (err) {
+      console.error("deleteBooking error:", err);
+    }
+    setBookings((prev) => prev.filter((b) => b.id !== id));
   };
 
   const addDoctor = (doctor) => {
