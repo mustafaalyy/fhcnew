@@ -30,7 +30,7 @@ export default function Header({ currentTab, setCurrentTab }) {
 
   const navigation = [
     { id: "home", name: "الرئيسية" },
-    { id: "services", name: "الخدمات" },
+    { id: "services", name: "التخصصات" },
     { id: "doctors", name: "الأطباء" },
     { id: "portal", name: "بوابة المريض" },
     { id: "about", name: "عن المستشفى" },

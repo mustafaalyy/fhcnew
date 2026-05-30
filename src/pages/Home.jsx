@@ -324,74 +324,53 @@ export default function Home({ setCurrentTab, selectedDoctorId, setSelectedSpeci
         </div>
       </section>
 
-      {/* Homepage Booking section */}
+      {/* Patient Portal Section */}
       <section className="section-padding" style={{ backgroundColor: "var(--color-white)", borderTop: "1px solid var(--color-border)", borderBottom: "1px solid var(--color-border)" }}>
         <div className="container">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem", alignItems: "center" }} className="home-booking-grid">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "3rem", alignItems: "center" }} className="home-booking-grid">
             <div>
               <span style={{ color: "var(--color-primary)", fontWeight: "800", display: "inline-block", marginBottom: "0.6rem" }}>
-                الحجز المباشر
+                بوابة المريض الإلكترونية
               </span>
               <h2 style={{ fontSize: "2.3rem", color: "var(--color-dark)", fontWeight: "800", marginBottom: "1rem" }}>
-                احجز موعدك الطبي من الصفحة الرئيسية
+                ملفك الطبي بالكامل في مكان واحد
               </h2>
               <p style={{ color: "var(--color-text)", lineHeight: "1.9", fontSize: "1.05rem", marginBottom: "1.5rem" }}>
-                اختر التخصص أو الطبيب وسيتم تحويلك لنموذج الحجز الكامل لتأكيد البيانات والموعد.
+                ادخل على ملفك الطبي الشخصي بأمان — اطلع على حجوزاتك السابقة، الروشتات الطبية، ونتائج الفحوصات في أي وقت ومن أي مكان.
               </p>
-              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-                <button onClick={() => setCurrentTab("booking")} className="btn btn-primary">
-                  <Calendar size={18} />
-                  افتح نموذج الحجز
-                </button>
-                <button onClick={() => setCurrentTab("doctors")} className="btn btn-outline">
-                  اختر طبيبك
-                </button>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginBottom: "1.5rem" }}>
+                {[
+                  "عرض جميع الحجوزات والمواعيد السابقة",
+                  "الاطلاع على الروشتات الطبية الصادرة",
+                  "متابعة نتائج الفحوصات والتحاليل",
+                  "تحميل تقارير طبية رسمية"
+                ].map((feature, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.95rem", color: "var(--color-text)" }}>
+                    <div style={{ width: "20px", height: "20px", borderRadius: "50%", backgroundColor: "rgba(42,157,181,0.12)", color: "var(--color-primary)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "0.7rem", fontWeight: "bold" }}>✓</div>
+                    {feature}
+                  </div>
+                ))}
               </div>
+              <button onClick={() => setCurrentTab("portal")} className="btn btn-primary" style={{ padding: "0.75rem 2rem" }}>
+                ادخل بوابة المريض
+              </button>
             </div>
 
-            <div className="luxury-card" style={{ backgroundColor: "var(--color-light)" }}>
-              <h3 style={{ fontSize: "1.35rem", fontWeight: "800", color: "var(--color-dark)", marginBottom: "1rem" }}>
-                حجز سريع
-              </h3>
-              <div style={{ display: "grid", gap: "1rem" }}>
-                <select
-                  className="form-input"
-                  value={searchSpecialty}
-                  onChange={(e) => setSearchSpecialty(e.target.value)}
-                >
-                  <option value="">اختر التخصص</option>
-                  {specialties.map((spec) => (
-                    <option key={spec.id} value={spec.id}>{spec.name}</option>
-                  ))}
-                </select>
-
-                <select
-                  className="form-input"
-                  value={selectedDoctorId}
-                  onChange={(e) => {
-                    const doctor = doctors.find((doc) => doc.id === e.target.value);
-                    setSelectedDoctorId(e.target.value);
-                    if (doctor) setSelectedSpecialtyId(doctor.specialtyId);
-                  }}
-                >
-                  <option value="">اختر الطبيب</option>
-                  {doctors
-                    .filter((doctor) => !searchSpecialty || doctor.specialtyId === searchSpecialty)
-                    .map((doctor) => (
-                      <option key={doctor.id} value={doctor.id}>{doctor.name}</option>
-                    ))}
-                </select>
-
-                <button
-                  onClick={() => {
-                    if (searchSpecialty) setSelectedSpecialtyId(searchSpecialty);
-                    setCurrentTab("booking");
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className="btn btn-primary"
-                  style={{ width: "100%" }}
-                >
-                  تأكيد وفتح الحجز
+            <div className="luxury-card" style={{ background: "linear-gradient(135deg, var(--color-dark) 0%, #1a3a4a 100%)", color: "white", textAlign: "center", padding: "2.5rem" }}>
+              <div style={{ width: "64px", height: "64px", borderRadius: "50%", backgroundColor: "rgba(42,157,181,0.2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.5rem" }}>
+                <svg width="32" height="32" fill="none" stroke="var(--color-primary)" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+              </div>
+              <h3 style={{ fontSize: "1.3rem", fontWeight: "800", marginBottom: "0.75rem" }}>دخول آمن وسريع</h3>
+              <p style={{ color: "rgba(255,255,255,0.7)", lineHeight: "1.7", marginBottom: "1.5rem", fontSize: "0.95rem" }}>
+                ادخل برقم هاتفك ورقم مرجع الحجز الخاص بك للوصول الفوري لملفك الطبي الكامل
+              </p>
+              <div style={{ display: "grid", gap: "0.75rem" }}>
+                <input type="tel" placeholder="رقم الهاتف المسجل" className="form-input" style={{ textAlign: "right", backgroundColor: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "white" }} readOnly onClick={() => setCurrentTab("portal")} />
+                <input type="text" placeholder="رقم مرجع الحجز (FHH-2026-XXXX)" className="form-input" style={{ textAlign: "right", backgroundColor: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "white" }} readOnly onClick={() => setCurrentTab("portal")} />
+                <button onClick={() => setCurrentTab("portal")} className="btn btn-primary" style={{ width: "100%" }}>
+                  دخول الملف الطبي
                 </button>
               </div>
             </div>
