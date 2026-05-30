@@ -361,7 +361,7 @@ export const HospitalProvider = ({ children }) => {
       patient_age: parseInt(newBooking.age) || 0,
       patient_gender: newBooking.gender || "male",
       specialty: newBooking.specialtyName || "",
-      doctor_id: newBooking.doctorId || null,
+      doctor_id: null,
       doctor_name: newBooking.doctorName || "",
       booking_date: newBooking.date || "",
       booking_time: newBooking.time || "",
@@ -398,7 +398,12 @@ export const HospitalProvider = ({ children }) => {
         },
         body: JSON.stringify(payload)
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = null; }
+      if (!res.ok) {
+        console.error("Supabase booking insert failed:", text);
+      }
       const saved = Array.isArray(data) ? data[0] : data;
       if (saved && saved.id) localBooking.id = saved.id;
       setBookings((prev) => [localBooking, ...prev]);
