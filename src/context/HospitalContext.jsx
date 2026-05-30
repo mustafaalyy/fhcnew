@@ -230,12 +230,31 @@ export const HospitalProvider = ({ children }) => {
   const fetchBookings = async () => {
     setBookingsLoading(true);
     try {
-      const data = await apiGet("/api/hospital-data?resource=bookings");
-      setBookings(Array.isArray(data) ? data : INITIAL_BOOKINGS);
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/bookings?select=*&order=created_at.desc`, {
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`
+        }
+      });
+      const data = await res.json();
+      const normalized = Array.isArray(data) ? data.map(b => ({
+        ...b,
+        id: b.reference_code || b.id,
+        patientName: b.patient_name || "",
+        phone: b.patient_phone || "",
+        age: b.patient_age || "",
+        specialtyName: b.specialty || "",
+        doctorId: b.doctor_id || "",
+        doctorName: b.doctor_name || "",
+        date: b.booking_date || "",
+        time: b.booking_time || "",
+        notes: b.complaint || "",
+        status: b.status || "pending"
+      })) : [];
+      setBookings(normalized);
     } catch (error) {
-      console.warn("Supabase bookings fallback:", error);
-      setBookings(INITIAL_BOOKINGS);
-      setCloudError("تعذر تحميل الحجوزات من Supabase.");
+      console.warn("fetchBookings error:", error);
+      setBookings([]);
     } finally {
       setBookingsLoading(false);
     }
@@ -334,11 +353,39 @@ export const HospitalProvider = ({ children }) => {
   };
 
   const addBooking = async (newBooking) => {
+    const refCode = `FHH-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    // Map to exact Supabase column names
     const payload = {
-      ...newBooking,
-      id: newBooking.id || `FHH-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-      created_at: new Date().toISOString(),
-      status: newBooking.status || "pending"
+      patient_name: newBooking.patientName || "",
+      patient_phone: newBooking.phone || "",
+      patient_age: parseInt(newBooking.age) || 0,
+      patient_gender: newBooking.gender || "male",
+      specialty: newBooking.specialtyName || "",
+      doctor_id: newBooking.doctorId || null,
+      doctor_name: newBooking.doctorName || "",
+      booking_date: newBooking.date || "",
+      booking_time: newBooking.time || "",
+      visit_type: "new",
+      complaint: newBooking.notes || null,
+      status: "pending",
+      reference_code: refCode,
+      created_at: new Date().toISOString()
+    };
+    // Local representation with camelCase for UI
+    const localBooking = {
+      id: refCode,
+      patientName: payload.patient_name,
+      phone: payload.patient_phone,
+      age: payload.patient_age,
+      specialtyName: payload.specialty,
+      doctorId: payload.doctor_id,
+      doctorName: payload.doctor_name,
+      date: payload.booking_date,
+      time: payload.booking_time,
+      notes: payload.complaint,
+      status: payload.status,
+      reference_code: refCode,
+      created_at: payload.created_at
     };
     try {
       const res = await fetch(`${SUPABASE_URL}/rest/v1/bookings`, {
@@ -353,19 +400,20 @@ export const HospitalProvider = ({ children }) => {
       });
       const data = await res.json();
       const saved = Array.isArray(data) ? data[0] : data;
-      const finalBooking = saved || payload;
-      setBookings((prev) => [finalBooking, ...prev]);
-      return finalBooking;
+      if (saved && saved.id) localBooking.id = saved.id;
+      setBookings((prev) => [localBooking, ...prev]);
+      return localBooking;
     } catch (err) {
       console.error("addBooking error:", err);
-      setBookings((prev) => [payload, ...prev]);
-      return payload;
+      setBookings((prev) => [localBooking, ...prev]);
+      return localBooking;
     }
   };
 
   const updateBookingStatus = async (id, status) => {
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${id}`, {
+      // Try by reference_code first, then by id
+      await fetch(`${SUPABASE_URL}/rest/v1/bookings?reference_code=eq.${id}`, {
         method: "PATCH",
         headers: {
           apikey: SUPABASE_KEY,
@@ -383,7 +431,7 @@ export const HospitalProvider = ({ children }) => {
 
   const deleteBooking = async (id) => {
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${id}`, {
+      await fetch(`${SUPABASE_URL}/rest/v1/bookings?reference_code=eq.${id}`, {
         method: "DELETE",
         headers: {
           apikey: SUPABASE_KEY,
