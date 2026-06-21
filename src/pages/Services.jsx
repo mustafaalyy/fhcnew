@@ -75,11 +75,11 @@ export default function Services({ setCurrentTab, setSelectedSpecialtyId }) {
           </div>
           <div>
             <a 
-              href="tel:19999" 
+              href="tel:02238322000" 
               className="btn btn-secondary"
               style={{ backgroundColor: "var(--color-danger)", boxShadow: "0 4px 14px rgba(239, 68, 68, 0.4)", padding: "0.9rem 2.2rem", fontSize: "1.1rem" }}
             >
-              اتصل بالطوارئ فوراً: 19999
+              اتصل بالطوارئ فوراً: 02238322000
             </a>
           </div>
         </div>
