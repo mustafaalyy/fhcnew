@@ -84,12 +84,14 @@ export default function Admin({ setCurrentTab }) {
   const [rxDoctorName, setRxDoctorName] = useState("");
   const [rxMedicines, setRxMedicines] = useState([{ name: "", dosage: "", frequency: "", period: "" }]);
   const [rxNotes, setRxNotes] = useState("");
+  const [rxImages, setRxImages] = useState([]); // uploaded images for prescription
 
   // Report modal state
   const [showReportModal, setShowReportModal] = useState(false);
   const [repTitle, setRepTitle] = useState("");
   const [repType, setRepType] = useState("medical");
   const [repData, setRepData] = useState("");
+  const [repImages, setRepImages] = useState([]); // uploaded images for report
 
   // Missing state used by the Admin JSX
   const [showUserModal, setShowUserModal] = useState(false);
@@ -521,8 +523,10 @@ export default function Admin({ setCurrentTab }) {
       diagnosis: rxDiagnosis,
       medicines: rxMedicines.filter((m) => m.name?.trim()),
       notes: rxNotes,
+      images: rxImages,
       date: new Date().toLocaleDateString("ar-EG")
     });
+    setRxImages([]);
     setShowPrescriptionModal(false);
     return prescription;
   };
@@ -547,8 +551,10 @@ export default function Admin({ setCurrentTab }) {
       resultText: repResultText,
       notes: repNotes,
       status: repStatus,
+      images: repImages,
       date: new Date().toLocaleDateString("ar-EG")
     });
+    setRepImages([]);
     setShowReportModal(false);
     return report;
   };
@@ -1743,6 +1749,32 @@ export default function Admin({ setCurrentTab }) {
                 ></textarea>
               </div>
 
+              {/* Image Upload for Prescription */}
+              <div>
+                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "bold", marginBottom: "0.5rem" }}>📎 إرفاق صور (روشتة مصورة أو مستندات)</label>
+                <label style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 1rem", backgroundColor: "var(--color-light)", border: "1px dashed var(--color-primary)", borderRadius: "8px", cursor: "pointer", fontSize: "0.85rem" }}>
+                  + اختر صورة أو ملف
+                  <input type="file" accept="image/*" multiple style={{ display: "none" }} onChange={(e) => {
+                    Array.from(e.target.files).forEach(f => {
+                      const r = new FileReader();
+                      r.onload = ev => setRxImages(prev => [...prev, { name: f.name, url: ev.target.result }]);
+                      r.readAsDataURL(f);
+                    });
+                  }} />
+                </label>
+                {rxImages.length > 0 && (
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.75rem" }}>
+                    {rxImages.map((img, i) => (
+                      <div key={i} style={{ position: "relative" }}>
+                        <img src={img.url} alt={img.name} style={{ height: "64px", width: "64px", objectFit: "cover", borderRadius: "6px", border: "1px solid var(--color-border)" }} />
+                        <button onClick={() => setRxImages(prev => prev.filter((_, idx) => idx !== i))}
+                          style={{ position: "absolute", top: "-6px", right: "-6px", width: "18px", height: "18px", borderRadius: "50%", backgroundColor: "#ef4444", color: "white", border: "none", cursor: "pointer", fontSize: "11px" }}>×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div style={{ display: "flex", gap: "0.75rem", justifyContent: "flex-end", marginTop: "1rem" }}>
                 <button type="button" onClick={() => setShowPrescriptionModal(false)} className="btn btn-outline" style={{ padding: "0.5rem 1.5rem" }}>إلغاء</button>
                 <button type="submit" className="btn btn-primary" style={{ padding: "0.5rem 2rem" }}>حفظ وإصدار الروشتة</button>
@@ -1816,6 +1848,32 @@ export default function Admin({ setCurrentTab }) {
                   value={repNotes} 
                   onChange={(e) => setRepNotes(e.target.value)}
                 ></textarea>
+              </div>
+
+              {/* Image Upload for Report */}
+              <div>
+                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "bold", marginBottom: "0.5rem" }}>📎 إرفاق صور (أشعة، تحاليل، فحوصات)</label>
+                <label style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 1rem", backgroundColor: "var(--color-light)", border: "1px dashed var(--color-secondary)", borderRadius: "8px", cursor: "pointer", fontSize: "0.85rem" }}>
+                  + اختر صورة أو ملف
+                  <input type="file" accept="image/*" multiple style={{ display: "none" }} onChange={(e) => {
+                    Array.from(e.target.files).forEach(f => {
+                      const r = new FileReader();
+                      r.onload = ev => setRepImages(prev => [...prev, { name: f.name, url: ev.target.result }]);
+                      r.readAsDataURL(f);
+                    });
+                  }} />
+                </label>
+                {repImages.length > 0 && (
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.75rem" }}>
+                    {repImages.map((img, i) => (
+                      <div key={i} style={{ position: "relative" }}>
+                        <img src={img.url} alt={img.name} style={{ height: "64px", width: "64px", objectFit: "cover", borderRadius: "6px", border: "1px solid var(--color-border)" }} />
+                        <button onClick={() => setRepImages(prev => prev.filter((_, idx) => idx !== i))}
+                          style={{ position: "absolute", top: "-6px", right: "-6px", width: "18px", height: "18px", borderRadius: "50%", backgroundColor: "#ef4444", color: "white", border: "none", cursor: "pointer", fontSize: "11px" }}>×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div style={{ display: "flex", gap: "0.75rem", justifyContent: "flex-end", marginTop: "1rem" }}>
